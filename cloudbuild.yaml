@@ -1,0 +1,9 @@
+# Cloud Build 用。手元のアーキテクチャに関係なく linux/amd64 のイメージを作る。
+#   gcloud builds submit --config cloudbuild.yaml --substitutions=_IMAGE=<イメージURL>
+steps:
+  - name: gcr.io/cloud-builders/docker
+    args: ["build", "-f", "Dockerfile.deploy", "-t", "${_IMAGE}", "."]
+images:
+  - "${_IMAGE}"
+options:
+  logging: CLOUD_LOGGING_ONLY

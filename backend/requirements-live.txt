@@ -1,0 +1,8 @@
+# 実 API に切り替えるとき（*_MODE=live / STORAGE_DRIVER=gcs）に必要。
+# mock 運用ではこれらは import されないため、開発イメージでは省いてビルドを軽くできる。
+# Firestore は既定の保存先なので requirements.txt 側にある。
+google-adk
+google-genai
+google-cloud-storage
+google-cloud-speech
+google-cloud-texttospeech

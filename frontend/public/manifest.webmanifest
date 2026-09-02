@@ -1,0 +1,13 @@
+{
+  "name": "オモイデ工房",
+  "short_name": "オモイデ工房",
+  "description": "白黒写真をよみがえらせ、思い出の場所を巡る旅まで組み立てる家族のためのアプリ",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#f3ead9",
+  "theme_color": "#f3ead9",
+  "lang": "ja",
+  "icons": [
+    { "src": "/icon.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any maskable" }
+  ]
+}

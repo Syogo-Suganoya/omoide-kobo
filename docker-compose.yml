@@ -1,0 +1,91 @@
+services:
+  api:
+    build:
+      context: ./backend
+      args:
+        # 実 API / Firestore / GCS を使うときは true（google-adk などを追加インストール）
+        WITH_LIVE_DEPS: ${WITH_LIVE_DEPS:-false}
+    image: omoide-kobo-api
+    command: uvicorn app.main:app --host 0.0.0.0 --port 8080 --reload
+    ports:
+      - "8080:8080"
+    environment:
+      APP_ENV: dev
+      # mock | live  … 外部APIの実接続切替（キーが入るまでは mock）
+      GEMINI_MODE: ${GEMINI_MODE:-mock}
+      YOUCAM_MODE: ${YOUCAM_MODE:-mock}
+      EKISPERT_MODE: ${EKISPERT_MODE:-mock}
+      SPEECH_MODE: ${SPEECH_MODE:-mock}
+      GMI_MODE: ${GMI_MODE:-mock}
+      # firestore（既定・下の emulator を指す） | memory（テスト用）
+      DB_DRIVER: ${DB_DRIVER:-firestore}
+      FIRESTORE_EMULATOR_HOST: firestore:8085
+      GOOGLE_CLOUD_PROJECT: ${GOOGLE_CLOUD_PROJECT:-omoide-kobo-local}
+      # local | gcs
+      STORAGE_DRIVER: ${STORAGE_DRIVER:-local}
+      STORAGE_LOCAL_ROOT: /data/storage
+      GCS_BUCKET: ${GCS_BUCKET:-}
+      GEMINI_API_KEY: ${GEMINI_API_KEY:-}
+      GEMINI_MODEL: ${GEMINI_MODEL:-gemini-3.7-flash}
+      YOUCAM_API_KEY: ${YOUCAM_API_KEY:-}
+      YOUCAM_SECRET_KEY: ${YOUCAM_SECRET_KEY:-}
+      EKISPERT_MCP_URL: ${EKISPERT_MCP_URL:-}
+      GMI_API_KEY: ${GMI_API_KEY:-}
+      GMI_BASE_URL: ${GMI_BASE_URL:-https://api.gmi-serving.com}
+      GMI_IMAGE_MODEL: ${GMI_IMAGE_MODEL:-bria-fibo}
+      GMI_VIDEO_MODEL: ${GMI_VIDEO_MODEL:-hailuo-2.3-image2video}
+    volumes:
+      - ./backend:/app
+      - omoide-data:/data
+    depends_on:
+      firestore:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request;urllib.request.urlopen('http://localhost:8080/healthz')"]
+      interval: 10s
+      timeout: 3s
+      retries: 10
+
+  web:
+    build:
+      context: ./frontend
+    image: omoide-kobo-web
+    command: npm run dev -- --host 0.0.0.0 --port 5173
+    ports:
+      - "5173:5173"
+    environment:
+      VITE_API_BASE: /api
+      API_PROXY_TARGET: http://api:8080
+    volumes:
+      - ./frontend:/app
+      - web-node-modules:/app/node_modules
+    depends_on:
+      - api
+
+  # アーキテクチャ図の生成（`docker compose --profile docs run --rm docs`）
+  docs:
+    build:
+      context: ./docs
+    image: omoide-kobo-docs
+    profiles: ["docs"]
+    volumes:
+      - ./docs:/docs
+
+  firestore:
+    image: google/cloud-sdk:emulators
+    command: >
+      gcloud emulators firestore start
+      --host-port=0.0.0.0:8085
+      --project=${GOOGLE_CLOUD_PROJECT:-omoide-kobo-local}
+    ports:
+      - "8085:8085"
+    healthcheck:
+      test: ["CMD", "curl", "-sf", "http://localhost:8085/"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+      start_period: 10s
+
+volumes:
+  omoide-data:
+  web-node-modules:

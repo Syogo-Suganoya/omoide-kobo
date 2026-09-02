@@ -1,0 +1,150 @@
+import { useCallback, useEffect, useRef, useState } from "react";
+import { Link, useParams } from "react-router-dom";
+
+import { api } from "../api";
+import { ErrorBar, StatusChip } from "../components/bits";
+import type { Album, Job, Photo } from "../types";
+
+export default function AlbumPage() {
+  const { albumId = "" } = useParams();
+  const [album, setAlbum] = useState<Album | null>(null);
+  const [photos, setPhotos] = useState<Photo[]>([]);
+  const [job, setJob] = useState<Job | null>(null);
+  const [over, setOver] = useState(false);
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState<unknown>(null);
+  const fileRef = useRef<HTMLInputElement>(null);
+
+  const load = useCallback(async () => {
+    const [a, p] = await Promise.all([api.getAlbum(albumId), api.listPhotos(albumId)]);
+    setAlbum(a);
+    setPhotos(p);
+  }, [albumId]);
+
+  useEffect(() => {
+    load().catch(setError);
+  }, [load]);
+
+  // 取り込み中はジョブ進行と写真の状態をポーリングする
+  useEffect(() => {
+    if (!job || job.status === "done" || job.status === "failed") return;
+    const timer = setInterval(async () => {
+      try {
+        const next = await api.getJob(job.id);
+        setJob(next);
+        setPhotos(await api.listPhotos(albumId));
+      } catch (e) {
+        setError(e);
+      }
+    }, 900);
+    return () => clearInterval(timer);
+  }, [job, albumId]);
+
+  const upload = async (files: FileList | File[] | null) => {
+    const list = Array.from(files ?? []).filter((f) => f.type.startsWith("image/"));
+    if (list.length === 0) return;
+    setBusy(true);
+    setError(null);
+    try {
+      const res = await api.upload(albumId, list);
+      setJob(res.job);
+      await load();
+    } catch (e) {
+      setError(e);
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const progress = job ? Math.round((job.completed / Math.max(1, job.total)) * 100) : 0;
+
+  return (
+    <>
+      <ErrorBar error={error} />
+      <section className="block">
+        <h2>{album?.title ?? "アルバム"}</h2>
+        <p className="lead">
+          アルバムの写真をまとめて選ぶと、ノイズ除去・退色補正・カラー化を通したうえで、
+          写っている場所と年代の候補を根拠つきで出します。確定はあとで家族が行います。
+        </p>
+
+        <div
+          className={`dropzone ${over ? "over" : ""}`}
+          onDragOver={(e) => {
+            e.preventDefault();
+            setOver(true);
+          }}
+          onDragLeave={() => setOver(false)}
+          onDrop={(e) => {
+            e.preventDefault();
+            setOver(false);
+            upload(e.dataTransfer.files);
+          }}
+          onClick={() => fileRef.current?.click()}
+        >
+          <input
+            ref={fileRef}
+            type="file"
+            accept="image/*"
+            multiple
+            hidden
+            onChange={(e) => upload(e.target.files)}
+          />
+          {busy ? "取り込んでいます…" : "写真をここにドロップ／タップして選ぶ（複数可・スマホ撮影でOK）"}
+        </div>
+      </section>
+
+      {job && (
+        <section className="block">
+          <h2>取り込みの進行</h2>
+          <div className="card">
+            <div className="row" style={{ justifyContent: "space-between" }}>
+              <span className={`chip ${job.status === "done" ? "iro" : "aka"}`}>{job.status}</span>
+              <span style={{ color: "var(--sub)", fontSize: "0.8rem" }}>
+                {job.completed} / {job.total} 枚
+              </span>
+            </div>
+            <div className="progress">
+              <i style={{ width: `${progress}%` }} />
+            </div>
+            <ul className="trace">
+              {job.steps.map((step, i) => (
+                <li key={i}>{step}</li>
+              ))}
+            </ul>
+          </div>
+        </section>
+      )}
+
+      <section className="block">
+        <h2>写真</h2>
+        {photos.length === 0 ? (
+          <div className="empty">まだ写真がありません。</div>
+        ) : (
+          <div className="grid">
+            {photos.map((photo, i) => (
+              <Link
+                key={photo.id}
+                to={`/photos/${photo.id}`}
+                className={`polaroid ${i % 2 ? "tilt-b" : "tilt-a"}`}
+              >
+                <img
+                  src={api.imageUrl(photo.id, photo.restored_ref ? "restored" : "original")}
+                  alt={photo.filename}
+                />
+                <span className="badge">
+                  <StatusChip status={photo.status} />
+                </span>
+                <span className="cap">
+                  {photo.confirmed.place ??
+                    photo.estimate?.place_candidates[0]?.name ??
+                    photo.filename}
+                </span>
+              </Link>
+            ))}
+          </div>
+        )}
+      </section>
+    </>
+  );
+}
