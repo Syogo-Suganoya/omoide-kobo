@@ -1,0 +1,106 @@
+name: Cloud Run へデプロイ
+
+# いまは無効化してあります。有効にする条件は下の `if:` を参照。
+#   - 自動デプロイ: リポジトリ変数 ENABLE_CD を "true" にする
+#   - 手動デプロイ: Actions タブから「Run workflow」で confirm=true を選ぶ
+# 変数が未設定なら、push されてもジョブは skip されます（課金も発生しません）。
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "backend/**"
+      - "frontend/**"
+      - "Dockerfile.deploy"
+      - "cloudbuild.yaml"
+      - ".github/workflows/deploy.yml"
+  workflow_dispatch:
+    inputs:
+      confirm:
+        description: "本当に Cloud Run へデプロイする"
+        type: boolean
+        default: false
+
+env:
+  PROJECT_ID: omoide-kobo
+  REGION: asia-northeast1
+  SERVICE: omoide-kobo
+  REPO: omoide
+
+jobs:
+  # 壊れたものを出さないための門。テストが落ちたらデプロイに進まない。
+  test:
+    name: テスト
+    if: vars.ENABLE_CD == 'true' || inputs.confirm
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: バックエンド（Firestore エミュレータごと起動）
+        run: docker compose run --rm api pytest -q
+
+      - name: フロントの型検査とビルド
+        run: docker compose run --rm --no-deps web npm run build
+
+  deploy:
+    name: デプロイ
+    needs: test
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      id-token: write # Workload Identity 連携に必要（鍵ファイルを置かないため）
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Google Cloud 認証
+        uses: google-github-actions/auth@v2
+        with:
+          project_id: ${{ env.PROJECT_ID }}
+          workload_identity_provider: ${{ vars.WIF_PROVIDER }}
+          service_account: ${{ vars.DEPLOY_SERVICE_ACCOUNT }}
+
+      - uses: google-github-actions/setup-gcloud@v2
+
+      - name: イメージをビルドして Artifact Registry へ
+        run: |
+          gcloud builds submit \
+            --config cloudbuild.yaml \
+            --substitutions=_IMAGE=${{ env.REGION }}-docker.pkg.dev/${{ env.PROJECT_ID }}/${{ env.REPO }}/${{ env.SERVICE }}:${{ github.sha }}
+
+      - name: Cloud Run へリリース
+        id: release
+        run: |
+          gcloud run deploy ${{ env.SERVICE }} \
+            --image ${{ env.REGION }}-docker.pkg.dev/${{ env.PROJECT_ID }}/${{ env.REPO }}/${{ env.SERVICE }}:${{ github.sha }} \
+            --region ${{ env.REGION }} \
+            --service-account ${{ vars.RUNTIME_SERVICE_ACCOUNT }} \
+            --allow-unauthenticated \
+            --no-cpu-throttling \
+            --memory 1Gi \
+            --timeout 600 \
+            --set-env-vars "DB_DRIVER=firestore,STORAGE_DRIVER=gcs,GCS_BUCKET=${{ vars.GCS_BUCKET }},GOOGLE_CLOUD_PROJECT=${{ env.PROJECT_ID }},GEMINI_MODE=${{ vars.GEMINI_MODE || 'mock' }},YOUCAM_MODE=${{ vars.YOUCAM_MODE || 'mock' }},EKISPERT_MODE=${{ vars.EKISPERT_MODE || 'mock' }},SPEECH_MODE=${{ vars.SPEECH_MODE || 'mock' }},GMI_MODE=${{ vars.GMI_MODE || 'mock' }}"
+
+          echo "url=$(gcloud run services describe ${{ env.SERVICE }} --region ${{ env.REGION }} --format='value(status.url)')" >> "$GITHUB_OUTPUT"
+
+      - name: 起動確認
+        run: |
+          for i in $(seq 1 10); do
+            if curl -sf "${{ steps.release.outputs.url }}/healthz" > /dev/null; then
+              echo "起動を確認しました: ${{ steps.release.outputs.url }}"
+              exit 0
+            fi
+            sleep 5
+          done
+          echo "起動を確認できませんでした。直前のリビジョンに戻してください。"
+          exit 1
+
+      - name: まとめ
+        if: always()
+        run: |
+          {
+            echo "### デプロイ結果"
+            echo ""
+            echo "- サービス: \`${{ env.SERVICE }}\`（${{ env.REGION }}）"
+            echo "- イメージ: \`${{ github.sha }}\`"
+            echo "- URL: ${{ steps.release.outputs.url }}"
+          } >> "$GITHUB_STEP_SUMMARY"

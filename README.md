@@ -10,7 +10,7 @@
 ## 動かす
 
 ```bash
-cd gcp_hack/omoide-kobo && docker compose up --build
+docker compose up --build
 ```
 
 - 画面: http://localhost:5173

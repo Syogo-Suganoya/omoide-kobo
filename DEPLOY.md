@@ -2,6 +2,7 @@
 
 オモイデ工房を Google Cloud（Cloud Run）に載せる手順です。**CLI** と **画面操作** の2通りを載せます。
 どちらでも結果は同じなので、やりやすい方を選んでください。
+main への push で自動デプロイする **GitHub Actions（CD）** も用意してあります（[パターンC](#パターンc-github-actionscd)。既定は無効）。
 
 [Dockerfile.deploy](Dockerfile.deploy) が PWA をビルドして API と同居させた 1 コンテナを作るので、
 デプロイするサービスは 1 つだけです（`/` が画面、`/api` が API）。
@@ -244,7 +245,7 @@ open $URL                               # 画面
 （`>_` アイコン）を押すと、ブラウザ内のターミナルが開きます。ここで実行すればアーキテクチャの問題も起きません。
 
 ```bash
-git clone <このリポジトリ> && cd gcp_hack/omoide-kobo
+git clone https://github.com/Syogo-Suganoya/omoide-kobo.git && cd omoide-kobo
 
 gcloud builds submit --config cloudbuild.yaml \
   --substitutions=_IMAGE=asia-northeast1-docker.pkg.dev/omoide-kobo/omoide/omoide-kobo:latest
@@ -290,6 +291,96 @@ gcloud builds submit --config cloudbuild.yaml \
 2. URL の末尾に `/healthz` を付けて開くと `{"status":"ok",...}` が返る
 3. `/api/agents` で各アダプタが `mock` か `live` か確認できる
 4. うまく動かないときは Cloud Run のサービス →「ログ」タブを見る
+
+---
+
+# パターンC: GitHub Actions（CD）
+
+[.github/workflows/deploy.yml](.github/workflows/deploy.yml) が、テスト → イメージビルド → Cloud Run へのリリース →
+起動確認 まで通します。**いまは無効**で、push しても何も起きません（ジョブが skip されます）。
+
+初回だけは CLI か画面操作でリソースを作っておく必要があります（Artifact Registry・バケット・Firestore・
+サービスアカウント）。CD が作るのはイメージとリビジョンだけです。
+
+## 1. GitHub から鍵なしで入れるようにする
+
+サービスアカウントの JSON 鍵をリポジトリに置く方式は避け、Workload Identity 連携（鍵ファイル不要）を使います。
+
+```bash
+export PROJECT=omoide-kobo
+export REPO_SLUG=Syogo-Suganoya/omoide-kobo
+export PROJECT_NUMBER=$(gcloud projects describe $PROJECT --format='value(projectNumber)')
+
+gcloud services enable iamcredentials.googleapis.com
+
+gcloud iam workload-identity-pools create github --location=global \
+  --display-name="GitHub Actions"
+
+gcloud iam workload-identity-pools providers create-oidc github \
+  --location=global --workload-identity-pool=github \
+  --display-name="GitHub" \
+  --issuer-uri="https://token.actions.githubusercontent.com" \
+  --attribute-mapping="google.subject=assertion.sub,attribute.repository=assertion.repository" \
+  --attribute-condition="assertion.repository=='$REPO_SLUG'"
+```
+
+`--attribute-condition` が要点です。**このリポジトリからの実行だけ**を受け入れます。これを省くと、
+他人のリポジトリからでもトークンを交換できてしまいます。
+
+デプロイを実行するサービスアカウントを作り、GitHub からの成りすましを許可します。
+
+```bash
+export DEPLOYER=omoide-kobo-deployer@$PROJECT.iam.gserviceaccount.com
+
+gcloud iam service-accounts create omoide-kobo-deployer --display-name="GitHub Actions デプロイ用"
+
+for role in roles/run.admin roles/cloudbuild.builds.editor roles/artifactregistry.writer roles/storage.admin; do
+  gcloud projects add-iam-policy-binding $PROJECT --member="serviceAccount:$DEPLOYER" --role="$role"
+done
+
+# デプロイ用SAが、実行用SA（omoide-kobo-run）としてサービスを動かせるようにする
+gcloud iam service-accounts add-iam-policy-binding omoide-kobo-run@$PROJECT.iam.gserviceaccount.com \
+  --member="serviceAccount:$DEPLOYER" --role="roles/iam.serviceAccountUser"
+
+# GitHub の当該リポジトリからだけ、このSAを使えるようにする
+gcloud iam service-accounts add-iam-policy-binding $DEPLOYER \
+  --role="roles/iam.workloadIdentityUser" \
+  --member="principalSet://iam.googleapis.com/projects/$PROJECT_NUMBER/locations/global/workloadIdentityPools/github/attribute.repository/$REPO_SLUG"
+
+echo "WIF_PROVIDER=projects/$PROJECT_NUMBER/locations/global/workloadIdentityPools/github/providers/github"
+```
+
+## 2. GitHub 側に値を入れる
+
+リポジトリの **Settings → Secrets and variables → Actions → Variables** に、次を **Variables**（Secrets ではない）として登録します。
+いずれも秘密ではありません。秘密は Secret Manager 側にあり、Cloud Run が直接読みます。
+
+| 変数 | 値 |
+|---|---|
+| `WIF_PROVIDER` | 上のコマンドが出力した `projects/…/providers/github` |
+| `DEPLOY_SERVICE_ACCOUNT` | `omoide-kobo-deployer@omoide-kobo.iam.gserviceaccount.com` |
+| `RUNTIME_SERVICE_ACCOUNT` | `omoide-kobo-run@omoide-kobo.iam.gserviceaccount.com` |
+| `GCS_BUCKET` | `omoide-kobo-family` |
+| `GEMINI_MODE` ほか | 省略可（未設定なら `mock`）。実 API を使うなら `live` |
+
+## 3. CD を有効にする
+
+**変数 `ENABLE_CD` を `true` にした時点で、main への push が本番へ出ます。** それまでは無効です。
+
+| やりたいこと | 操作 |
+|---|---|
+| 自動デプロイを有効にする | Variables に `ENABLE_CD` = `true` を追加 |
+| 一時的に止める | `ENABLE_CD` を `false` にする（削除でも可） |
+| 有効にせず1回だけ流す | Actions タブ →「Cloud Run へデプロイ」→ Run workflow → **confirm にチェック** |
+
+`backend/` `frontend/` `Dockerfile.deploy` `cloudbuild.yaml` のいずれかが変わった push でだけ走ります。
+ドキュメントだけの変更では動きません。
+
+## 4. 失敗したときは
+
+- **テストで止まった** — 本番には出ていません。ローカルで `docker compose run --rm api pytest` を通してから push
+- **リリース後の起動確認で落ちた** — 新しいリビジョンは配信されているので、[元に戻す](#元に戻す)でひとつ前へ戻す
+- **認証で落ちた** — `WIF_PROVIDER` と `DEPLOY_SERVICE_ACCOUNT` の綴り、`--attribute-condition` のリポジトリ名を確認
 
 ---
 

@@ -7,7 +7,6 @@
 Docker だけあれば動きます。ローカルに Python も Node も要りません。
 
 ```bash
-cd gcp_hack/omoide-kobo
 docker compose up --build
 ```
 
@@ -178,7 +177,12 @@ YouCam・駅すぱあと・GMI Cloud の live クライアントは、実キー�
 
 ## デプロイ
 
-Cloud Run への手順は [DEPLOY.md](DEPLOY.md) にまとめてあります（CLI と画面操作の2通り）。
+Cloud Run への手順は [DEPLOY.md](DEPLOY.md) にまとめてあります（CLI・画面操作・GitHub Actions の3通り）。
+
+GitHub Actions の CD（[.github/workflows/deploy.yml](.github/workflows/deploy.yml)）は
+**既定で無効**です。リポジトリ変数 `ENABLE_CD` を `true` にするまで、push しても skip されます。
+有効にする前に、DEPLOY.md のパターンC を読んで Workload Identity の設定を済ませてください。
+
 デプロイ時にハマりやすいのは次の2点です。
 
 - **CPU 常時割り当てが要る** — 取り込みはレスポンス後にバックグラウンドで走るため、既定の CPU 割り当てだと途中で止まる
