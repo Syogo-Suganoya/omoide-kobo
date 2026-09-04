@@ -14,9 +14,13 @@ RUN apt-get update \
     && apt-get install -y --no-install-recommends libjpeg62-turbo zlib1g \
     && rm -rf /var/lib/apt/lists/*
 
-COPY requirements.txt requirements-live.txt ./
-RUN pip install --no-cache-dir -r requirements.txt \
-    && if [ "$WITH_LIVE_DEPS" = "true" ]; then pip install --no-cache-dir -r requirements-live.txt; fi
+# live 側は依存が多く、pip に解かせると数十分かかる。解決済みの requirements-lock.txt を使う。
+COPY requirements.txt requirements-lock.txt ./
+RUN if [ "$WITH_LIVE_DEPS" = "true" ]; then \
+      pip install --no-cache-dir --no-deps -r requirements-lock.txt; \
+    else \
+      pip install --no-cache-dir -r requirements.txt; \
+    fi
 
 COPY . .
 

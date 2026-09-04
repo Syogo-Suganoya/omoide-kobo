@@ -45,7 +45,23 @@ docker compose up
 ```
 
 `google-adk` を含む GCP 系の依存は [requirements-live.txt](backend/requirements-live.txt) に分けてあります。
-mock 運用では import されないので、開発イメージは軽いままです（この分離をやめると初回ビルドが 20 分以上かかります）。
+mock 運用では import されないので、開発イメージは軽いままです。
+
+### 依存の追加・更新
+
+直接依存は `requirements.txt`（常に要るもの）と `requirements-live.txt`（実 API 用）に書きます。
+**編集したら必ずロックを作り直してください。**
+
+```bash
+docker compose run --rm lock
+```
+
+`requirements-lock.txt` に全依存が解決済みで並び、イメージはこれを `pip install --no-deps` で入れます。
+pip に依存解決をさせないので、live 込みのビルドでも 30 秒ほどで終わります。
+
+ロックを更新せずに `requirements-live.txt` だけ変えると、**変更が反映されないまま**イメージができます。
+逆にロックを介さず pip に解かせると、`google-genai` のバージョンを延々と探索して数十分戻ってきません
+（これが理由でロック方式にしています）。
 
 ## テスト
 

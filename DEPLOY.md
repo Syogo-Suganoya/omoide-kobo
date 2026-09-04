@@ -68,7 +68,10 @@ export SERVICE=omoide-kobo
 export BUCKET=$PROJECT-family
 export REPO=omoide
 
-gcloud config set project $PROJECT
+gcloud config set project "$PROJECT"
+
+# ターミナルを開き直すと消えます。以降の手順で空になっていないか、都度この確認を
+echo "PROJECT=[$PROJECT] REGION=[$REGION] SERVICE=[$SERVICE] BUCKET=[$BUCKET] REPO=[$REPO]"
 
 gcloud services enable \
   run.googleapis.com \
@@ -135,11 +138,13 @@ gcloud secrets add-iam-policy-binding gmi-key \
 これを忘れると、デプロイは通るのに起動時に exec format error で落ちます。
 
 ```bash
-export IMAGE=$REGION-docker.pkg.dev/$PROJECT/$REPO/$SERVICE:latest
+# zsh では $SERVICE:latest の ":l" が小文字化の修飾子として食われるため、波括弧が必須
+export IMAGE="${REGION}-docker.pkg.dev/${PROJECT}/${REPO}/${SERVICE}:latest"
+echo "$IMAGE"   # asia-northeast1-docker.pkg.dev/omoide-kobo/omoide/omoide-kobo:latest
 
-gcloud auth configure-docker $REGION-docker.pkg.dev
-docker build --platform linux/amd64 -f Dockerfile.deploy -t $IMAGE .
-docker push $IMAGE
+gcloud auth configure-docker "${REGION}-docker.pkg.dev"
+docker build --platform linux/amd64 -f Dockerfile.deploy -t "$IMAGE" .
+docker push "$IMAGE"
 ```
 
 Cloud Build に投げれば、手元のアーキテクチャを気にせず済みます（こちらが楽です）。

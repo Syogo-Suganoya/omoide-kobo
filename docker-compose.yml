@@ -62,6 +62,20 @@ services:
     depends_on:
       - api
 
+  # 依存ロックの再生成（`docker compose run --rm lock`）。
+  # requirements*.txt を編集したら必ず流し、requirements-lock.txt を更新する。
+  lock:
+    image: ghcr.io/astral-sh/uv:python3.12-bookworm-slim
+    profiles: ["tools"]
+    working_dir: /w
+    volumes:
+      - ./backend:/w
+    command: >
+      uv pip compile requirements.txt requirements-live.txt
+      --python-platform x86_64-manylinux2014 --python-version 3.12
+      --custom-compile-command "docker compose run --rm lock"
+      -o requirements-lock.txt
+
   # アーキテクチャ図の生成（`docker compose --profile docs run --rm docs`）
   docs:
     build:
