@@ -38,8 +38,11 @@ export function MotionPanel({
   const latest = clips[clips.length - 1];
 
   return (
-    <section className="card">
-      <h3>ウゴクアルバム</h3>
+    <details className="card fold" open={clips.length > 0}>
+      <summary>
+        <h3>ウゴクアルバム</h3>
+        <span className="chip muted">{latest ? STATUS[latest.status].text : "まだ"}</span>
+      </summary>
       <p className="lead">
         カラー化した写真を数秒だけ動かします。動かすのはその場の空気だけで、
         しゃべらせたり、写っていない動きを足したりはしません。生成物には AI 生成の印が入ります。
@@ -60,7 +63,7 @@ export function MotionPanel({
           </label>
           {includesDeceased && joined.length === 0 && (
             <div className="error">
-              同意を求める家族がいません。先に「共有と記録」でメンバーを招待し、参加を承諾してもらってください。
+              同意を求める家族がいません。先に「共有」でメンバーを招待し、参加を承諾してもらってください。
             </div>
           )}
           <button
@@ -77,7 +80,6 @@ export function MotionPanel({
         <div key={clip.id} style={{ marginTop: 14 }}>
           <div className="row" style={{ justifyContent: "space-between", marginBottom: 8 }}>
             <span className={`chip ${STATUS[clip.status].cls}`}>{STATUS[clip.status].text}</span>
-            {clip.model && <span className="chip muted">{clip.model}</span>}
           </div>
 
           {clip.status === "pending_consent" && (
@@ -147,10 +149,7 @@ export function MotionPanel({
         </div>
       ))}
 
-      <p style={{ color: "var(--sub)", fontSize: "0.76rem", marginTop: 12 }}>
-        依頼・同意・生成の記録は、すべて「共有と記録」の監査ログに残ります。
-      </p>
-    </section>
+    </details>
   );
 }
 
@@ -161,8 +160,6 @@ const VARIANTS = [
 
 export function VariantPicker({
   photoId,
-  restoredProvider,
-  altProvider,
   altSteps,
   preferred,
   showing,
@@ -171,8 +168,6 @@ export function VariantPicker({
   onChoose,
 }: {
   photoId: string;
-  restoredProvider: string;
-  altProvider: string;
   altSteps: string[];
   preferred?: "restored" | "alt" | null;
   showing: "restored" | "alt";
@@ -180,7 +175,6 @@ export function VariantPicker({
   onShow: (variant: "restored" | "alt") => void;
   onChoose: (variant: "restored" | "alt") => void;
 }) {
-  const provider = showing === "alt" ? altProvider : restoredProvider;
   return (
     <div style={{ marginTop: 10 }}>
       <div className="row" style={{ justifyContent: "space-between" }}>
@@ -207,7 +201,7 @@ export function VariantPicker({
         </button>
       </div>
       <p style={{ color: "var(--sub)", fontSize: "0.76rem", marginTop: 6 }}>
-        {showing === "alt" ? altSteps.join("／") : "ノイズ除去／退色補正／カラー化"}（{provider}）
+        {showing === "alt" ? altSteps.join("／") : "ノイズ除去／退色補正／カラー化"}
         ／ どちらを残すかは家族が決めます
       </p>
     </div>

@@ -1,7 +1,5 @@
 import type {
-  AgentsResponse,
   Album,
-  AuditLog,
   Family,
   Job,
   MotionClip,
@@ -28,11 +26,11 @@ async function request<T>(path: string, init?: RequestInit): Promise<T> {
 const json = (body: unknown) => JSON.stringify(body);
 
 export const api = {
-  agents: () => request<AgentsResponse>("/agents"),
-
   listFamilies: () => request<Family[]>("/families"),
   createFamily: (name: string) => request<Family>("/families", { method: "POST", body: json({ name }) }),
   getFamily: (id: string) => request<Family>(`/families/${id}`),
+  renameFamily: (id: string, name: string) =>
+    request<Family>(`/families/${id}`, { method: "PATCH", body: json({ name }) }),
   inviteMember: (id: string, name: string, relation: string) =>
     request<Family>(`/families/${id}/members`, { method: "POST", body: json({ name, relation }) }),
   updateInvite: (id: string, uid: string, status: string) =>
@@ -44,6 +42,8 @@ export const api = {
     request<Album>("/albums", { method: "POST", body: json({ family_id: familyId, title }) }),
   getAlbum: (id: string) => request<Album>(`/albums/${id}`),
   listPhotos: (albumId: string) => request<Photo[]>(`/albums/${albumId}/photos`),
+  // 「いまやること」の集計用。家族の写真をまとめて取る
+  listFamilyPhotos: (familyId: string) => request<Photo[]>(`/families/${familyId}/photos`),
 
   upload: (albumId: string, files: File[]) => {
     const form = new FormData();
@@ -102,8 +102,6 @@ export const api = {
   decideConsent: (motionId: string, uid: string, status: "granted" | "denied") =>
     request<MotionClip>(`/motions/${motionId}/consent`, { method: "POST", body: json({ uid, status }) }),
   motionVideoUrl: (motionId: string) => `${BASE}/motions/${motionId}/video`,
-
-  audit: (familyId: string) => request<AuditLog[]>(`/families/${familyId}/audit`),
 
   createShare: (payload: {
     family_id: string;

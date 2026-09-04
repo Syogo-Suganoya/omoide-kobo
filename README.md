@@ -13,7 +13,7 @@
 docker compose up --build
 ```
 
-- 画面: http://localhost:5173
+- 画面: http://localhost:5173 （トップは機能と使い方の案内ページ。「アルバム」から実際に使えます）
 - API: http://localhost:8080
 
 外部 API のキーは要りません。Gemini・YouCam・GMI Cloud・駅すぱあと・Speech はモックで動くので、

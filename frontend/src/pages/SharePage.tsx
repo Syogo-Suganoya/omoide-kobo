@@ -3,30 +3,10 @@ import { useCallback, useEffect, useState } from "react";
 import { api } from "../api";
 import { ErrorBar } from "../components/bits";
 import { useFamily } from "../family";
-import type { Album, AuditLog, ShareLink } from "../types";
+import type { Album, ShareLink } from "../types";
 
-const ACTION_LABEL: Record<string, string> = {
-  upload: "取り込み",
-  restore: "修復",
-  estimate: "推定",
-  family_confirm: "家族の確定",
-  story_capture: "語りの記録",
-  trip_plan: "旅程作成",
-  share: "共有リンクの発行",
-  share_view: "共有リンクの閲覧",
-  share_revoke: "共有リンクの失効",
-  share_scope_change: "共有範囲の変更",
-  motion_request: "ウゴクアルバムの依頼",
-  motion_consent: "ウゴクアルバムの同意",
-  motion_generate: "ウゴクアルバムの生成",
-  variant_select: "修復結果の選択",
-  delete: "削除",
-  external_call: "外部API呼び出し",
-};
-
-export default function GovernancePage() {
+export default function SharePage() {
   const { family, refresh } = useFamily();
-  const [logs, setLogs] = useState<AuditLog[]>([]);
   const [name, setName] = useState("");
   const [relation, setRelation] = useState("長男");
   const [albums, setAlbums] = useState<Album[]>([]);
@@ -39,14 +19,14 @@ export default function GovernancePage() {
 
   const load = useCallback(async () => {
     if (!family) return;
-    const [logList, albumList, shareList] = await Promise.all([
-      api.audit(family.id),
+    const [albumList, shareList] = await Promise.all([
       api.listAlbums(family.id),
       api.listShares(family.id),
     ]);
-    setLogs(logList);
     setAlbums(albumList);
     setShares(shareList);
+    // 1冊しかないなら選ばせる意味がない
+    if (albumList.length === 1) setShareTarget((cur) => cur || albumList[0].id);
   }, [family]);
 
   useEffect(() => {
@@ -75,6 +55,11 @@ export default function GovernancePage() {
       <section className="block">
         <h2>家族メンバー</h2>
         <p className="lead">共有は明示的な招待制です。承諾していない相手には写真を送れません。</p>
+        {family.members.length === 0 ? (
+          <div className="empty">
+            まだ誰も招いていません。下に名前と続柄を入れて招くと、ここに並びます。
+          </div>
+        ) : (
         <table>
           <thead>
             <tr>
@@ -132,8 +117,9 @@ export default function GovernancePage() {
             ))}
           </tbody>
         </table>
+        )}
 
-        <div className="row" style={{ marginTop: 12 }}>
+        <div className="row" style={{ marginTop: 12, alignItems: "center" }}>
           <input style={{ maxWidth: 200 }} placeholder="名前" value={name} onChange={(e) => setName(e.target.value)} />
           <input
             style={{ maxWidth: 140 }}
@@ -153,6 +139,11 @@ export default function GovernancePage() {
           >
             招待する
           </button>
+          {!name.trim() && (
+            <span style={{ color: "var(--sub)", fontSize: "0.82rem" }}>
+              名前を入れると押せます
+            </span>
+          )}
         </div>
       </section>
 
@@ -184,9 +175,9 @@ export default function GovernancePage() {
               </select>
             </div>
           </div>
+          <div className="row" style={{ marginTop: 14, alignItems: "center" }}>
           <button
             className="btn"
-            style={{ marginTop: 14 }}
             disabled={!shareTarget}
             onClick={() =>
               act(async () => {
@@ -205,6 +196,12 @@ export default function GovernancePage() {
           >
             リンクを作る
           </button>
+          {!shareTarget && (
+            <span style={{ color: "var(--aka)", fontSize: "0.82rem" }}>
+              ← 共有するアルバムを選ぶと押せます
+            </span>
+          )}
+          </div>
         </div>
 
         {shares.length > 0 && (
@@ -251,41 +248,12 @@ export default function GovernancePage() {
       </section>
 
       <section className="block">
-        <h2>監査ログ</h2>
-        <p className="lead">
-          誰が何をしたか、どの外部 API に渡したか、学習オプトアウトの設定まで残します。
-        </p>
-        {logs.length === 0 ? (
-          <div className="empty">まだ記録がありません。</div>
-        ) : (
-          <table>
-            <thead>
-              <tr>
-                <th>時刻</th>
-                <th>操作</th>
-                <th>実行者</th>
-                <th>内容</th>
-              </tr>
-            </thead>
-            <tbody>
-              {logs.slice(0, 60).map((log) => (
-                <tr key={log.id}>
-                  <td style={{ whiteSpace: "nowrap" }}>
-                    {new Date(log.created_at).toLocaleTimeString("ja-JP")}
-                  </td>
-                  <td style={{ color: "var(--ink)" }}>{ACTION_LABEL[log.action] ?? log.action}</td>
-                  <td>{log.actor}</td>
-                  <td className="mono">{JSON.stringify(log.detail)}</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        )}
-      </section>
-
-      <section className="block">
-        <h2>削除権</h2>
-        <div className="card" style={{ borderLeft: "6px solid var(--aka)" }}>
+        {/* 共有しに来た人の目の前に、消すボタンを開いて置かない */}
+        <details className="card fold" style={{ borderLeft: "6px solid var(--aka)" }}>
+          <summary>
+            <h3>すべて削除する</h3>
+            <span className="chip aka">取り消せません</span>
+          </summary>
           <p className="lead">
             この家族の写真・語り・旅程をすべて消します。取り消せません。実行した事実だけが証跡として残ります。
           </p>
@@ -308,8 +276,13 @@ export default function GovernancePage() {
             >
               すべて削除する
             </button>
+            {confirmText !== family.name && (
+              <span style={{ color: "var(--sub)", fontSize: "0.82rem" }}>
+                「{family.name}」と入力すると押せます
+              </span>
+            )}
           </div>
-        </div>
+        </details>
       </section>
     </>
   );

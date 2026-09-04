@@ -1,7 +1,7 @@
 import { useRef, useState } from "react";
 import type { PointerEvent as ReactPointerEvent } from "react";
 
-import type { PhotoStatus } from "../types";
+import type { Job, PhotoStatus } from "../types";
 
 export function Confidence({ value, label }: { value: number; label?: string }) {
   return (
@@ -27,6 +27,18 @@ const STATUS_LABEL: Record<PhotoStatus, { text: string; cls: string }> = {
 
 export function StatusChip({ status }: { status: PhotoStatus }) {
   const info = STATUS_LABEL[status];
+  return <span className={`chip ${info.cls}`}>{info.text}</span>;
+}
+
+const JOB_LABEL: Record<Job["status"], { text: string; cls: string }> = {
+  queued: { text: "順番待ち", cls: "muted" },
+  running: { text: "作業中", cls: "aka" },
+  done: { text: "できました", cls: "iro" },
+  failed: { text: "一部できませんでした", cls: "aka" },
+};
+
+export function JobChip({ status }: { status: Job["status"] }) {
+  const info = JOB_LABEL[status];
   return <span className={`chip ${info.cls}`}>{info.text}</span>;
 }
 

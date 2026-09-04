@@ -75,14 +75,24 @@ select:focus {
 .topbar {
   background: var(--paper);
   border-bottom: 2px dashed var(--line);
-  padding: 12px 20px;
-  display: flex;
-  align-items: center;
-  gap: 18px;
-  flex-wrap: wrap;
   position: sticky;
   top: 0;
   z-index: 20;
+}
+
+.topbar .bar {
+  padding: 12px 20px 10px;
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  flex-wrap: wrap;
+  max-width: 1000px;
+  margin: 0 auto;
+}
+
+.topbar .guide-link {
+  font-size: 0.8rem;
+  color: var(--sub);
 }
 
 .topbar .brand {
@@ -96,20 +106,123 @@ select:focus {
   color: var(--iro);
 }
 
-.topbar nav {
-  display: flex;
-  gap: 14px;
-  font-size: 0.86rem;
-  flex-wrap: wrap;
-}
-
-.topbar nav a.active {
-  color: var(--aka);
-  border-bottom: 2px solid var(--aka);
-}
-
 .topbar .spacer {
   flex: 1;
+}
+
+/* ------------------------------------------------------- 主メニュー（やること） */
+
+.mainnav {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 8px;
+  max-width: 1000px;
+  margin: 0 auto;
+  padding: 0 20px 12px;
+}
+
+.mainnav .tab {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 9px 12px;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  background: rgba(255, 255, 255, 0.55);
+  color: var(--ink);
+  text-decoration: none;
+  transition: background 0.15s, border-color 0.15s;
+}
+
+.mainnav .tab:hover {
+  background: #fff;
+  border-color: var(--iro);
+}
+
+.mainnav .tab.active {
+  background: #fff;
+  border-color: var(--aka);
+  box-shadow: inset 0 -3px 0 var(--aka);
+}
+
+.mainnav .ico svg {
+  width: 22px;
+  height: 22px;
+  display: block;
+  fill: none;
+  stroke: var(--sub);
+  stroke-width: 1.5;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.mainnav .tab.active .ico svg {
+  stroke: var(--aka);
+}
+
+.mainnav .txt {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.mainnav .txt b {
+  font-size: 0.92rem;
+  font-weight: 600;
+}
+
+.mainnav .txt small {
+  color: var(--sub);
+  font-size: 0.72rem;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* 狭い画面では下端に回す。親指の届く位置に置きたい */
+@media (max-width: 640px) {
+  .mainnav {
+    position: fixed;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    z-index: 30;
+    padding: 6px 8px calc(6px + env(safe-area-inset-bottom));
+    gap: 6px;
+    background: var(--paper);
+    border-top: 2px dashed var(--line);
+  }
+
+  .mainnav .tab {
+    flex-direction: column;
+    gap: 3px;
+    padding: 7px 4px;
+    border: none;
+    background: none;
+    text-align: center;
+  }
+
+  .mainnav .tab.active {
+    background: none;
+    box-shadow: none;
+  }
+
+  .mainnav .txt b {
+    font-size: 0.74rem;
+  }
+
+  .mainnav .tab.active .txt b {
+    color: var(--aka);
+  }
+
+  .mainnav .txt small {
+    display: none;
+  }
+
+  /* 共有リンクの閲覧画面にはメニューが無いので、そのぶんの余白も要らない */
+  .app:has(.mainnav) {
+    padding-bottom: 68px;
+  }
 }
 
 .wrap {
@@ -317,6 +430,41 @@ p.lead {
   position: absolute;
   top: 4px;
   right: 4px;
+}
+
+/* 選べる写真。押せることと、選んだことが見て分かるようにする */
+.polaroid.pick {
+  border: 3px solid transparent;
+  cursor: pointer;
+  text-align: left;
+  font: inherit;
+  transition: border-color 0.15s, box-shadow 0.15s;
+}
+
+.polaroid.pick:hover {
+  border-color: var(--line);
+}
+
+.polaroid.pick.on {
+  border-color: var(--iro);
+}
+
+.polaroid.pick .mark {
+  position: absolute;
+  top: 14px;
+  left: 14px;
+  padding: 3px 9px;
+  border-radius: 999px;
+  font-size: 0.72rem;
+  background: rgba(255, 253, 247, 0.92);
+  border: 1px solid var(--line);
+  color: var(--sub);
+}
+
+.polaroid.pick.on .mark {
+  background: var(--iro);
+  border-color: var(--iro);
+  color: #fff;
 }
 
 .tilt-a {
@@ -605,5 +753,540 @@ footer.foot {
   }
   .wrap {
     padding: 18px 14px 60px;
+  }
+}
+
+/* ---------------------------------------------------------------- 案内ページ */
+
+.landing {
+  max-width: 900px;
+  margin: 0 auto;
+}
+
+.hero {
+  padding: 40px 0 8px;
+  text-align: center;
+}
+
+.hero .kicker {
+  font-size: 0.74rem;
+  letter-spacing: 0.3em;
+  color: var(--aka);
+}
+
+.hero h1 {
+  font-family: "Yuji Syuku", serif;
+  font-size: 3.1rem;
+  letter-spacing: 0.1em;
+  margin: 0.15em 0;
+  color: var(--brown);
+}
+
+.hero h1 em {
+  font-style: normal;
+  color: var(--iro);
+}
+
+.hero .tagline {
+  color: var(--sub);
+  max-width: 600px;
+  margin: 8px auto 0;
+  font-size: 0.95rem;
+  line-height: 2;
+}
+
+.hero .chips {
+  justify-content: center;
+  margin-top: 20px;
+}
+
+/* 半分だけ色が戻った写真 = この企画の看板 */
+.signature {
+  margin: 32px auto 0;
+  width: min(480px, 92%);
+  background: var(--paper);
+  padding: 14px 14px 44px;
+  box-shadow: 0 6px 20px rgba(92, 74, 53, 0.25);
+  transform: rotate(-1.5deg);
+  position: relative;
+}
+
+.signature svg {
+  display: block;
+  width: 100%;
+  height: auto;
+}
+
+.signature .caption {
+  position: absolute;
+  bottom: 12px;
+  left: 0;
+  right: 0;
+  text-align: center;
+  font-family: "Yuji Syuku", serif;
+  color: var(--sub);
+  font-size: 0.9rem;
+}
+
+.landing section {
+  padding: 46px 0;
+  border-top: 2px dashed var(--line);
+  margin: 0;
+}
+
+.landing section h2 {
+  font-size: 1.5rem;
+  letter-spacing: 0.14em;
+  margin-bottom: 24px;
+}
+
+.landing .card h3 {
+  font-size: 1rem;
+  color: var(--iro);
+  margin-bottom: 8px;
+  font-weight: 500;
+}
+
+.landing .card p {
+  color: var(--sub);
+  font-size: 0.88rem;
+}
+
+/* 「こんなこと、ありませんか」 */
+.story {
+  display: grid;
+  gap: 22px;
+}
+
+.story .item {
+  background: var(--paper);
+  border: 1px solid var(--line);
+  box-shadow: 2px 3px 0 var(--kraft);
+  display: grid;
+  grid-template-columns: minmax(0, 300px) minmax(0, 1fr);
+  gap: 0;
+  overflow: hidden;
+}
+
+/* 挿絵は台紙の色を敷いて、写真を貼ったように見せる */
+.story .art {
+  background: var(--sepia);
+  border-right: 1px dashed var(--line);
+  display: grid;
+  place-items: center;
+  padding: 18px;
+}
+
+.story .art svg {
+  width: 100%;
+  height: auto;
+}
+
+.story .body {
+  padding: 22px 26px;
+}
+
+.story .voice {
+  font-family: "Yuji Syuku", serif;
+  font-size: 1.06rem;
+  color: var(--brown);
+  line-height: 1.9;
+}
+
+.story p {
+  color: var(--sub);
+  font-size: 0.89rem;
+  margin-top: 10px;
+}
+
+.story .answer {
+  display: block;
+  margin-top: 14px;
+  padding-top: 12px;
+  border-top: 1px dotted var(--line);
+  color: var(--ink);
+  font-size: 0.9rem;
+}
+
+.story .answer b {
+  color: var(--iro);
+  font-weight: 500;
+  display: block;
+  margin-bottom: 3px;
+}
+
+/* AI への不安に対する短い返し。節の締めに置く */
+.assurance {
+  margin-top: 22px;
+  border: 1px dashed var(--line);
+  background: rgba(255, 253, 247, 0.7);
+  padding: 16px 22px;
+  color: var(--sub);
+  font-size: 0.88rem;
+}
+
+.assurance b {
+  color: var(--brown);
+  font-weight: 500;
+}
+
+/* 使い方のスライド */
+.guide {
+  display: grid;
+  grid-template-columns: 132px minmax(0, 1fr);
+  gap: 20px;
+  align-items: start;
+}
+
+.guide .thumbs {
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  /* 9枚を全部並べると縦に伸びすぎるので、高さを切ってスクロールさせる */
+  max-height: 460px;
+  overflow-y: auto;
+  padding-right: 6px;
+  scrollbar-width: thin;
+  scrollbar-color: var(--line) transparent;
+}
+
+.guide .thumbs::-webkit-scrollbar {
+  width: 6px;
+}
+
+.guide .thumbs::-webkit-scrollbar-thumb {
+  background: var(--line);
+  border-radius: 3px;
+}
+
+/* 説明の長さで高さが変わらないよう、カードの寸法は固定する */
+.guide .thumb {
+  width: 100%;
+  height: 104px;
+  background: var(--paper);
+  border: 1px solid var(--line);
+  border-radius: 2px;
+  padding: 5px;
+  display: grid;
+  grid-template-columns: 18px 1fr;
+  grid-template-rows: auto 1fr;
+  gap: 2px 6px;
+  text-align: left;
+  color: var(--sub);
+}
+
+.guide .thumb.on {
+  border-color: var(--iro);
+  box-shadow: 0 0 0 1px var(--iro);
+}
+
+.guide .thumb .no {
+  font-family: "Yuji Syuku", serif;
+  font-size: 0.72rem;
+  color: var(--aka);
+  grid-row: 1 / span 2;
+  align-self: center;
+  text-align: center;
+}
+
+.guide .thumb img,
+.guide .thumb .ph {
+  width: 100%;
+  aspect-ratio: 16 / 10;
+  object-fit: cover;
+  display: block;
+  background: var(--kraft);
+  border: 1px solid var(--line);
+}
+
+.guide .thumb .label {
+  font-size: 0.68rem;
+  line-height: 1.45;
+  grid-column: 2;
+  /* はみ出す長いタイトルは2行で打ち切る */
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+/* スクリーンショットは写真と同じく紙に貼った見せ方にする */
+.guide .shot {
+  background: var(--paper);
+  border: 1px solid var(--line);
+  padding: 10px;
+  box-shadow: 2px 3px 0 var(--kraft);
+}
+
+.guide .shot img {
+  width: 100%;
+  display: block;
+}
+
+.guide .shot-empty {
+  aspect-ratio: 16 / 10;
+  background: var(--sepia);
+  border: 1px dashed var(--line);
+  display: grid;
+  place-content: center;
+  justify-items: center;
+  gap: 6px;
+  color: var(--sub);
+  font-size: 0.85rem;
+}
+
+.guide .shot-empty b {
+  font-family: "Yuji Syuku", serif;
+  font-size: 1.6rem;
+  color: var(--aka);
+}
+
+.guide .shot-empty code {
+  font-family: ui-monospace, SFMono-Regular, monospace;
+  font-size: 0.72rem;
+  color: var(--line);
+}
+
+.guide .shot-nav {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-top: 12px;
+}
+
+.guide .counter {
+  font-family: "Yuji Syuku", serif;
+  color: var(--sub);
+  font-size: 0.85rem;
+}
+
+.guide .shot-caption {
+  margin-top: 14px;
+}
+
+.guide .phase-tag {
+  font-family: "Yuji Syuku", serif;
+  color: var(--aka);
+  font-size: 0.8rem;
+  letter-spacing: 0.1em;
+}
+
+.guide .shot-caption h3 {
+  font-size: 1.15rem;
+  margin: 4px 0 8px;
+}
+
+.guide .shot-caption p {
+  color: var(--sub);
+  font-size: 0.9rem;
+}
+
+/* 画面上のボタン名。押す場所がそのまま分かるように */
+.guide kbd {
+  font-family: inherit;
+  background: var(--sepia);
+  border: 1px solid var(--line);
+  border-radius: 3px;
+  padding: 1px 7px;
+  font-size: 0.82rem;
+  color: var(--brown);
+  white-space: nowrap;
+}
+
+.cta {
+  text-align: center;
+  padding: 44px 0 8px;
+}
+
+.cta .btn {
+  padding: 13px 34px;
+  font-size: 0.98rem;
+}
+
+@media (max-width: 640px) {
+  .hero h1 {
+    font-size: 2.2rem;
+  }
+  /* 狭い画面ではキャプションが折り返して写真に重なるので、下に流す */
+  .signature {
+    padding-bottom: 14px;
+  }
+  .signature .caption {
+    position: static;
+    margin-top: 10px;
+    font-size: 0.78rem;
+    line-height: 1.7;
+  }
+  /* 狭い画面では一覧を横スクロールにして、画面を大きく見せる */
+  .guide {
+    grid-template-columns: 1fr;
+  }
+  .guide .thumbs {
+    flex-direction: row;
+    overflow-x: auto;
+    padding-bottom: 6px;
+  }
+  .guide .thumbs {
+    max-height: none;
+    padding-right: 0;
+    padding-bottom: 6px;
+  }
+  .guide .thumbs li {
+    flex: 0 0 116px;
+  }
+  /* 狭い画面では挿絵を上に積む */
+  .story .item {
+    grid-template-columns: 1fr;
+  }
+  .story .art {
+    border-right: none;
+    border-bottom: 1px dashed var(--line);
+  }
+}
+
+/* ---------------------------------------------------------------- わが家 */
+
+.onboarding {
+  max-width: 620px;
+  margin: 40px auto 0;
+}
+
+/* 上から片づける「いまやること」 */
+.todo {
+  list-style: none;
+  display: grid;
+  gap: 10px;
+}
+
+.todo li {
+  background: var(--paper);
+  border: 1px solid var(--line);
+  border-left: 6px solid var(--aka);
+  box-shadow: 2px 3px 0 var(--kraft);
+  padding: 16px 20px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+
+/* 待つだけのものは前に出さない */
+.todo li.waiting {
+  border-left-color: var(--line);
+  box-shadow: none;
+}
+
+.todo .phase-tag {
+  font-family: "Yuji Syuku", serif;
+  color: var(--aka);
+  font-size: 0.74rem;
+  letter-spacing: 0.1em;
+  display: block;
+}
+
+.todo li.waiting .phase-tag {
+  color: var(--sub);
+}
+
+.todo b {
+  font-weight: 500;
+  font-size: 1rem;
+  display: block;
+  margin: 2px 0 4px;
+}
+
+.todo small {
+  color: var(--sub);
+  font-size: 0.84rem;
+}
+
+.todo .btn {
+  white-space: nowrap;
+}
+
+/* ---------------------------------------------------------------- 写真ページ */
+
+/* いまやること。写真を開いた人が最初に読む場所 */
+.now-bar {
+  background: var(--paper);
+  border: 1px solid var(--line);
+  border-top: 4px solid var(--iro);
+  box-shadow: 2px 3px 0 var(--kraft);
+  margin-bottom: 20px;
+}
+
+.now-bar .nav {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 8px 16px;
+  border-bottom: 1px dotted var(--line);
+  font-size: 0.82rem;
+}
+
+.now-bar .nav .off {
+  color: var(--line);
+}
+
+.now-bar .task {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  flex-wrap: wrap;
+  padding: 14px 20px;
+}
+
+.now-bar .task p {
+  font-size: 0.95rem;
+  margin: 0;
+}
+
+/* 折りたたむ節。開くまでは見出しだけ */
+.fold > summary {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  cursor: pointer;
+  list-style: none;
+}
+
+.fold > summary::-webkit-details-marker {
+  display: none;
+}
+
+.fold > summary::after {
+  content: "＋";
+  color: var(--aka);
+  font-size: 0.9rem;
+}
+
+.fold[open] > summary::after {
+  content: "－";
+}
+
+.fold > summary h3 {
+  margin: 0;
+}
+
+.fold[open] > summary {
+  margin-bottom: 12px;
+  padding-bottom: 10px;
+  border-bottom: 1px dotted var(--line);
+}
+
+@media (max-width: 640px) {
+  .todo li,
+  .now-bar .task {
+    flex-direction: column;
+    align-items: stretch;
+  }
+  .todo .btn,
+  .now-bar .task .btn {
+    text-align: center;
   }
 }

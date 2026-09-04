@@ -4,6 +4,7 @@ import { useParams } from "react-router-dom";
 import { api } from "../api";
 import { BeforeAfter, Confidence, ErrorBar, StatusChip } from "../components/bits";
 import { MotionPanel, VariantPicker } from "../components/motion";
+import { NowBar } from "../components/nowbar";
 import type { Family, MotionClip, Photo } from "../types";
 
 function useRecorder(onDone: (blob: Blob) => void) {
@@ -39,6 +40,7 @@ export default function PhotoPage() {
   // 同意を求める相手は、画面上部で選ばれている家族ではなく、この写真が属する家族
   const [family, setFamily] = useState<Family | null>(null);
   const [motions, setMotions] = useState<MotionClip[]>([]);
+  const [siblings, setSiblings] = useState<Photo[]>([]);
   const [showing, setShowing] = useState<"restored" | "alt">("restored");
   const [answers, setAnswers] = useState<Record<string, string>>({});
   const [place, setPlace] = useState("");
@@ -53,7 +55,9 @@ export default function PhotoPage() {
     const [p, clips] = await Promise.all([api.getPhoto(photoId), api.listMotions(photoId)]);
     setPhoto(p);
     setMotions(clips);
-    setFamily(await api.getFamily(p.family_id));
+    const [fam, album] = await Promise.all([api.getFamily(p.family_id), api.listPhotos(p.album_id)]);
+    setFamily(fam);
+    setSiblings(album);
     setShowing(p.preferred_variant === "alt" ? "alt" : "restored");
     setPlace(p.confirmed.place ?? "");
     setEra(p.confirmed.era ?? p.estimate?.era?.label ?? "");
@@ -90,13 +94,26 @@ export default function PhotoPage() {
     run("story", () => api.addStoryAudio(photoId, blob, who))
   );
 
+  const confirmRef = useRef<HTMLDetailsElement>(null);
+  const storyRef = useRef<HTMLDetailsElement>(null);
+
+  const jump = (target: "confirm" | "story") => {
+    const el = target === "confirm" ? confirmRef.current : storyRef.current;
+    if (el) el.open = true;
+    el?.scrollIntoView({ behavior: "smooth", block: "start" });
+  };
+
   if (!photo) return <ErrorBar error={error ?? null} />;
 
   const top = photo.estimate?.place_candidates[0];
 
+  const at = siblings.findIndex((p) => p.id === photo.id);
+  const neighbours = { prev: siblings[at - 1], next: siblings[at + 1] };
+
   return (
     <>
       <ErrorBar error={error} />
+      <NowBar photo={photo} neighbours={neighbours} onJump={jump} />
 
       <div className="split">
         <div className="stack">
@@ -116,8 +133,6 @@ export default function PhotoPage() {
             {photo.alt_restored_ref ? (
               <VariantPicker
                 photoId={photo.id}
-                restoredProvider={photo.restored_provider}
-                altProvider={photo.alt_restored_provider}
                 altSteps={photo.alt_restore_steps}
                 preferred={photo.preferred_variant}
                 showing={showing}
@@ -188,16 +203,19 @@ export default function PhotoPage() {
                   </span>
                 ))}
               </div>
-              <p style={{ color: "var(--sub)", fontSize: "0.74rem", marginTop: 8 }}>
-                モデル: {photo.estimate.model}
-              </p>
             </section>
           )}
         </div>
 
         <div className="stack">
-          <section className="card">
-            <h3>家族にたずねる</h3>
+          {/* 確定が済んだら畳む。いまやることと、画面の大きさを合わせる */}
+          <details className="card fold" ref={confirmRef} open={!photo.confirmed.place}>
+            <summary>
+              <h3>家族にたずねる</h3>
+              <span className={`chip ${photo.confirmed.place ? "muted" : "aka"}`}>
+                {photo.confirmed.place ? "確定済み・直せます" : "いまここ"}
+              </span>
+            </summary>
             <p className="lead">推定の決め手を、覚えている人に確かめます。</p>
             {photo.questions.length === 0 && <div className="empty">質問はまだありません。</div>}
             {photo.questions.map((q) => (
@@ -216,11 +234,22 @@ export default function PhotoPage() {
 
             <div className="field">
               <span className="label">場所（家族の記憶が最優先）</span>
+              {/* 空欄のまま確定できてしまわないように。AI の候補は入れず、押して入れてもらう */}
               <input
                 value={place}
                 onChange={(e) => setPlace(e.target.value)}
-                placeholder={top?.name ?? "例: JR只見線 会津柳津駅"}
+                placeholder={top ? `例: ${top.name}` : "例: JR只見線 会津柳津駅"}
               />
+              {!place && top && (
+                <button
+                  type="button"
+                  className="btn ghost small"
+                  style={{ marginTop: 6 }}
+                  onClick={() => setPlace(top.name)}
+                >
+                  「{top.name}」を入れる
+                </button>
+              )}
             </div>
             <div className="field">
               <span className="label">年代</span>
@@ -240,10 +269,10 @@ export default function PhotoPage() {
               <input value={who} onChange={(e) => setWho(e.target.value)} />
             </div>
 
-            <div className="row">
+            <div className="row" style={{ alignItems: "center" }}>
               <button
                 className="btn"
-                disabled={busy !== null}
+                disabled={busy !== null || !place.trim()}
                 onClick={() =>
                   run("confirm", () =>
                     api.confirmPhoto(photo.id, {
@@ -268,6 +297,11 @@ export default function PhotoPage() {
               >
                 訂正を踏まえて推定し直す
               </button>
+              {!place.trim() && (
+                <span style={{ color: "var(--aka)", fontSize: "0.82rem" }}>
+                  場所を入れると確定できます
+                </span>
+              )}
             </div>
 
             {photo.confirmed.confirmed_at && (
@@ -276,10 +310,20 @@ export default function PhotoPage() {
                 以後この写真の場所は、AI の候補ではなくこちらが使われます。
               </p>
             )}
-          </section>
+          </details>
 
-          <section className="card">
-            <h3>語りを聞く</h3>
+          {/* 場所が決まった写真は、次が語り。開いた状態で出す */}
+          <details
+            className="card fold"
+            ref={storyRef}
+            open={Boolean(photo.story) || Boolean(photo.confirmed.place)}
+          >
+            <summary>
+              <h3>語りを聞く</h3>
+              <span className={`chip ${photo.story ? "muted" : photo.confirmed.place ? "aka" : "muted"}`}>
+                {photo.story ? "記録あり" : photo.confirmed.place ? "いまここ" : "場所が決まってから"}
+              </span>
+            </summary>
             <p className="lead">
               写真を見ながらの会話をそのまま記録します。人物の関係は AI では確定せず、家族が承認したものだけ残ります。
             </p>
@@ -362,7 +406,7 @@ export default function PhotoPage() {
                 )}
               </div>
             )}
-          </section>
+          </details>
 
           <MotionPanel
             family={family}

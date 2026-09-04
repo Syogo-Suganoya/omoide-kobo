@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useState } from "react";
+import { Link } from "react-router-dom";
 
 import { api } from "../api";
 import { ErrorBar } from "../components/bits";
@@ -77,30 +78,45 @@ export default function TripPage() {
       <section className="block">
         <h2>思い出の場所を選ぶ</h2>
         <p className="lead">
+          <b>写真をタップすると選べます（何枚でも）。</b>
           家族が確定した場所だけが旅程に組めます。現況（現存・建替え・廃止）を確かめてから、
           休憩を織り込んだ経路にします。
         </p>
         {photos.length === 0 ? (
-          <div className="empty">場所が確定した写真がまだありません。</div>
+          <div className="empty">
+            場所が確定した写真がまだありません。
+            <div className="row" style={{ justifyContent: "center", marginTop: 12 }}>
+              <Link className="btn small" to="/home">
+                写真の場所を確かめに行く
+              </Link>
+            </div>
+          </div>
         ) : (
           <div className="grid">
-            {photos.map((photo, i) => (
-              <button
-                key={photo.id}
-                type="button"
-                className={`polaroid ${i % 2 ? "tilt-b" : "tilt-a"}`}
-                style={{
-                  border: selected.includes(photo.id) ? "3px solid var(--iro)" : "3px solid transparent",
-                  textAlign: "left",
-                  background: "var(--paper)",
-                }}
-                onClick={() => toggle(photo.id)}
-              >
-                <img src={api.imageUrl(photo.id, "restored")} alt={photo.filename} />
-                <span className="cap">{photo.confirmed.place}</span>
-              </button>
-            ))}
+            {photos.map((photo, i) => {
+              const on = selected.includes(photo.id);
+              return (
+                <button
+                  key={photo.id}
+                  type="button"
+                  aria-pressed={on}
+                  className={`polaroid pick ${on ? "on" : ""} ${i % 2 ? "tilt-b" : "tilt-a"}`}
+                  onClick={() => toggle(photo.id)}
+                >
+                  <img src={api.imageUrl(photo.id, "restored")} alt={photo.filename} />
+                  <span className="mark">{on ? `✓ ${selected.indexOf(photo.id) + 1}番目` : "選ぶ"}</span>
+                  <span className="cap">{photo.confirmed.place}</span>
+                </button>
+              );
+            })}
           </div>
+        )}
+        {photos.length > 0 && (
+          <p style={{ color: "var(--sub)", fontSize: "0.82rem", marginTop: 12 }}>
+            {selected.length === 0
+              ? "まだ1か所も選ばれていません。"
+              : `${selected.length}か所を選びました。タップした順に訪ねます。`}
+          </p>
         )}
       </section>
 
@@ -131,14 +147,21 @@ export default function TripPage() {
               </select>
             </div>
           </div>
-          <button
-            className="btn"
-            style={{ marginTop: 14 }}
-            disabled={busy || selected.length === 0}
-            onClick={plan}
-          >
-            {busy ? "組み立てています…" : `${selected.length}か所の旅程をつくる`}
-          </button>
+          <div className="row" style={{ marginTop: 14, alignItems: "center" }}>
+            <button className="btn" disabled={busy || selected.length === 0} onClick={plan}>
+              {busy
+                ? "組み立てています…"
+                : selected.length === 0
+                  ? "旅程をつくる"
+                  : `${selected.length}か所の旅程をつくる`}
+            </button>
+            {/* 押せない理由を、押す前に言う */}
+            {selected.length === 0 && !busy && (
+              <span style={{ color: "var(--aka)", fontSize: "0.82rem" }}>
+                ↑ 上の写真を1枚以上選ぶと押せます
+              </span>
+            )}
+          </div>
         </div>
       </section>
 

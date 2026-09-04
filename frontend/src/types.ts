@@ -217,27 +217,3 @@ export interface SharedView {
     has_image: boolean;
   }[];
 }
-
-export interface AuditLog {
-  id: string;
-  family_id: string;
-  actor: string;
-  action: string;
-  target?: string | null;
-  detail: Record<string, unknown>;
-  policy: string;
-  created_at: string;
-}
-
-export interface AgentInfo {
-  name: string;
-  role: string;
-  autonomy: "autonomous" | "propose_only";
-}
-
-export interface AgentsResponse {
-  roster: AgentInfo[];
-  modes: Record<string, string>;
-  adk: { available: boolean; active: boolean; reason?: string | null; tools?: string[] };
-  policy: string;
-}

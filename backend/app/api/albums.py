@@ -54,6 +54,12 @@ async def list_photos(album_id: str) -> list[Photo]:
     return await repo.list_photos(album_id)
 
 
+@router.get("/families/{family_id}/photos", response_model=list[Photo])
+async def list_family_photos(family_id: str) -> list[Photo]:
+    """「いまやること」の集計用。アルバムごとに引くと枚数ぶん往復するので、家族単位で1回にする。"""
+    return await repo.list_family_photos(family_id)
+
+
 @router.post("/albums/{album_id}/photos", response_model=IngestResult)
 async def upload_photos(album_id: str, files: list[UploadFile] = File(...)) -> IngestResult:
     """アルバム一括取り込み。保存後、修復→推定をバックグラウンドで自律進行させる。"""

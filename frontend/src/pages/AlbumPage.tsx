@@ -2,7 +2,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { Link, useParams } from "react-router-dom";
 
 import { api } from "../api";
-import { ErrorBar, StatusChip } from "../components/bits";
+import { ErrorBar, JobChip, StatusChip } from "../components/bits";
 import type { Album, Job, Photo } from "../types";
 
 export default function AlbumPage() {
@@ -57,6 +57,17 @@ export default function AlbumPage() {
   };
 
   const progress = job ? Math.round((job.completed / Math.max(1, job.total)) * 100) : 0;
+  const awaiting = photos.filter((p) => p.status === "awaiting_family");
+  const working = photos.filter((p) => !["awaiting_family", "confirmed", "failed"].includes(p.status));
+  const confirmed = photos.filter((p) => p.confirmed.place);
+
+  /** このアルバムを見終えた人の、次の一手 */
+  const next =
+    awaiting.length > 0
+      ? { to: `/photos/${awaiting[0].id}`, cta: "場所を確かめる", text: `${awaiting.length}枚が家族の確認を待っています。` }
+      : confirmed.length >= 2
+        ? { to: "/trip", cta: "旅程をつくる", text: `場所が決まった写真が${confirmed.length}枚あります。` }
+        : { to: "/home", cta: "やることを見る", text: "このアルバムでやることは、いまありません。" };
 
   return (
     <>
@@ -96,10 +107,10 @@ export default function AlbumPage() {
 
       {job && (
         <section className="block">
-          <h2>取り込みの進行</h2>
+          <h2>いま直しています</h2>
           <div className="card">
             <div className="row" style={{ justifyContent: "space-between" }}>
-              <span className={`chip ${job.status === "done" ? "iro" : "aka"}`}>{job.status}</span>
+              <JobChip status={job.status} />
               <span style={{ color: "var(--sub)", fontSize: "0.8rem" }}>
                 {job.completed} / {job.total} 枚
               </span>
@@ -118,6 +129,16 @@ export default function AlbumPage() {
 
       <section className="block">
         <h2>写真</h2>
+        {/* いまの中身に合わせて言うことを変える。無い札を探させない */}
+        <p className="lead">
+          {photos.length === 0
+            ? "上の枠に写真を入れると、ここに並びます。"
+            : awaiting.length > 0
+              ? `「家族の確認待ち」の札がついた${awaiting.length}枚から開くと、場所を決める作業に進めます。`
+              : working.length > 0
+                ? "直しているあいだ、ここに進み具合が出ます。終わると「家族の確認待ち」の札がつきます。"
+                : "この中の場所はすべて確定しました。写真を開くと、語りを残したり、旅程に入れたりできます。"}
+        </p>
         {photos.length === 0 ? (
           <div className="empty">まだ写真がありません。</div>
         ) : (
@@ -142,6 +163,19 @@ export default function AlbumPage() {
                 </span>
               </Link>
             ))}
+          </div>
+        )}
+
+        {photos.length > 0 && working.length === 0 && (
+          <div className="now-bar" style={{ marginTop: 18 }}>
+            <div className="task">
+              <p>{next.text}</p>
+              <div className="row">
+                <Link className="btn small" to={next.to}>
+                  {next.cta}
+                </Link>
+              </div>
+            </div>
           </div>
         )}
       </section>

@@ -16,6 +16,11 @@ class FamilyCreate(BaseModel):
     members: list[Member] = []
 
 
+class FamilyRename(BaseModel):
+    name: str
+    actor: str = "owner"
+
+
 class MemberInvite(BaseModel):
     name: str
     relation: str
@@ -50,6 +55,23 @@ async def get_family(family_id: str) -> Family:
     family = await repo.get_family(family_id)
     if family is None:
         raise HTTPException(404, "家族が見つかりません")
+    return family
+
+
+@router.patch("/families/{family_id}", response_model=Family)
+async def rename_family(family_id: str, payload: FamilyRename) -> Family:
+    """入口で名前を聞かずに始められるようにした分、あとから変えられる口を用意する。"""
+    family = await get_family(family_id)
+    before = family.name
+    family.name = payload.name.strip() or family.name
+    await repo.save_family(family)
+    await audit.record(
+        family_id,
+        AuditAction.share_scope_change,
+        actor=payload.actor,
+        target=family_id,
+        detail={"event": "family_renamed", "before": before, "after": family.name},
+    )
     return family
 
 
