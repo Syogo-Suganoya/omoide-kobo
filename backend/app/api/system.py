@@ -42,7 +42,6 @@ async def agents() -> dict[str, object]:
             "youcam": settings.youcam_mode,
             "ekispert": settings.ekispert_mode,
             "speech": settings.speech_mode,
-            "gmi": settings.gmi_mode,
             "db": settings.db_driver,
             "storage": settings.storage_driver,
         },

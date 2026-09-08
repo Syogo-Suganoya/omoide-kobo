@@ -15,7 +15,7 @@ main への push で自動デプロイする **GitHub Actions（CD）** も用�
 | Artifact Registry | コンテナイメージの置き場 |
 | Cloud Storage バケット | 写真・音声（家族限定・公開しない） |
 | Firestore | アルバム・写真のメタ情報・物語・旅程・共有リンク・監査ログ |
-| Secret Manager | Gemini / YouCam / GMI Cloud の API キー |
+| Secret Manager | Gemini / YouCam の API キー |
 | サービスアカウント | Cloud Run が上記にアクセスするための身元 |
 
 以下の値で書いてあります。プロジェクトを別名で作った場合は読み替えてください。
@@ -102,7 +102,6 @@ gcloud firestore databases create --location=$REGION
 ```bash
 printf '%s' 'YOUR_GEMINI_KEY' | gcloud secrets create gemini-key --data-file=-
 printf '%s' 'YOUR_YOUCAM_KEY' | gcloud secrets create youcam-key --data-file=-
-printf '%s' 'YOUR_GMI_KEY' | gcloud secrets create gmi-key --data-file=-
 ```
 
 キーをシェル履歴に残したくなければ `--data-file=path/to/key.txt` を使ってください。
@@ -127,8 +126,6 @@ gcloud storage buckets add-iam-policy-binding gs://$BUCKET \
 gcloud secrets add-iam-policy-binding gemini-key \
   --member="serviceAccount:$SA" --role="roles/secretmanager.secretAccessor"
 gcloud secrets add-iam-policy-binding youcam-key \
-  --member="serviceAccount:$SA" --role="roles/secretmanager.secretAccessor"
-gcloud secrets add-iam-policy-binding gmi-key \
   --member="serviceAccount:$SA" --role="roles/secretmanager.secretAccessor"
 ```
 
@@ -165,15 +162,15 @@ gcloud run deploy $SERVICE \
   --no-cpu-throttling \
   --memory 1Gi \
   --timeout 600 \
-  --set-env-vars "DB_DRIVER=firestore,STORAGE_DRIVER=gcs,GCS_BUCKET=$BUCKET,GOOGLE_CLOUD_PROJECT=$PROJECT,GEMINI_MODE=mock,YOUCAM_MODE=mock,EKISPERT_MODE=mock,SPEECH_MODE=mock,GMI_MODE=mock"
+  --set-env-vars "DB_DRIVER=firestore,STORAGE_DRIVER=gcs,GCS_BUCKET=$BUCKET,GOOGLE_CLOUD_PROJECT=$PROJECT,GEMINI_MODE=mock,YOUCAM_MODE=mock,EKISPERT_MODE=mock,SPEECH_MODE=mock"
 ```
 
 実 API に切り替えるときは、`*_MODE` を `live` にしてシークレットを渡します。
 
 ```bash
 gcloud run services update $SERVICE --region $REGION \
-  --set-env-vars "GEMINI_MODE=live,YOUCAM_MODE=live,GMI_MODE=live,GEMINI_MODEL=gemini-3.7-flash" \
-  --set-secrets "GEMINI_API_KEY=gemini-key:latest,YOUCAM_API_KEY=youcam-key:latest,GMI_API_KEY=gmi-key:latest"
+  --set-env-vars "GEMINI_MODE=live,YOUCAM_MODE=live,GEMINI_MODEL=gemini-3.7-flash" \
+  --set-secrets "GEMINI_API_KEY=gemini-key:latest,YOUCAM_API_KEY=youcam-key:latest"
 ```
 
 `--allow-unauthenticated` を付けるのは、**共有リンクを受け取った家族がログインなしで開ける**ようにするためです。
@@ -282,10 +279,9 @@ gcloud builds submit --config cloudbuild.yaml \
        | `YOUCAM_MODE` | `mock` |
        | `EKISPERT_MODE` | `mock` |
        | `SPEECH_MODE` | `mock` |
-       | `GMI_MODE` | `mock` |
 
-     - live にする場合は「シークレットの参照」から `gemini-key` / `youcam-key` / `gmi-key` を選び、
-       **環境変数として公開**、名前を `GEMINI_API_KEY` / `YOUCAM_API_KEY` / `GMI_API_KEY`、バージョンは `latest`
+     - live にする場合は「シークレットの参照」から `gemini-key` / `youcam-key` を選び、
+       **環境変数として公開**、名前を `GEMINI_API_KEY` / `YOUCAM_API_KEY`、バージョンは `latest`
    - **セキュリティ**タブ
      - **サービス アカウント** に `omoide-kobo-run@…` を選ぶ
 6. 「作成」を押す。1〜2分で URL が表示されます

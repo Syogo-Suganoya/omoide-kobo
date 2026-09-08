@@ -206,7 +206,7 @@ async def test_share_rejects_other_familys_target(client: AsyncClient) -> None:
 async def test_agents_roster(client: AsyncClient) -> None:
     body = (await client.get("/api/agents")).json()
     names = {a["name"] for a in body["roster"]}
-    assert names == {"orchestrator", "restore", "estimate", "story", "itinerary", "motion"}
+    assert names == {"orchestrator", "restore", "estimate", "story", "itinerary"}
     assert body["modes"]["gemini"] == "mock"
     assert body["policy"]
 

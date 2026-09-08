@@ -102,10 +102,6 @@ export interface Photo {
   restored_ref?: string | null;
   restore_steps: string[];
   restored_provider: string;
-  alt_restored_ref?: string | null;
-  alt_restore_steps: string[];
-  alt_restored_provider: string;
-  preferred_variant?: "restored" | "alt" | null;
   estimate?: Estimate | null;
   questions: FamilyQuestion[];
   confirmed: Confirmed;
@@ -165,33 +161,6 @@ export interface Trip {
   created_at: string;
 }
 
-export type ConsentStatus = "pending" | "granted" | "denied";
-
-export interface MotionConsent {
-  uid: string;
-  name: string;
-  status: ConsentStatus;
-  decided_at?: string | null;
-}
-
-export type MotionStatus = "pending_consent" | "denied" | "generating" | "ready" | "failed";
-
-export interface MotionClip {
-  id: string;
-  photo_id: string;
-  family_id: string;
-  requested_by: string;
-  includes_deceased: boolean;
-  status: MotionStatus;
-  consents: MotionConsent[];
-  scope: string;
-  watermarked: boolean;
-  video_ref?: string | null;
-  media_type: string;
-  model: string;
-  error?: string | null;
-  created_at: string;
-}
 
 export interface ShareLink {
   id: string;

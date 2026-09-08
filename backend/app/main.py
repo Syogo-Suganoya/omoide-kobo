@@ -8,7 +8,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse
 from fastapi.staticfiles import StaticFiles
 
-from app.api import albums, families, motion, photos, system, trips
+from app.api import albums, families, photos, system, trips
 from app.config import get_settings
 
 logging.basicConfig(level=logging.INFO, format="%(message)s")
@@ -31,7 +31,6 @@ for router in (
     families.router,
     albums.router,
     photos.router,
-    motion.router,
     trips.router,
     system.router,
 ):

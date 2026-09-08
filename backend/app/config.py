@@ -17,7 +17,6 @@ class Settings(BaseSettings):
     youcam_mode: Mode = "mock"
     ekispert_mode: Mode = "mock"
     speech_mode: Mode = "mock"
-    gmi_mode: Mode = "mock"
 
     # 既定は Firestore（開発はエミュレータ）。memory はテスト用のフォールバック
     db_driver: Literal["firestore", "memory"] = "firestore"
@@ -34,11 +33,6 @@ class Settings(BaseSettings):
     youcam_secret_key: str = ""
     ekispert_mcp_url: str = ""
 
-    # GMI Cloud（設計書 12章）: 修復品質の底上げとウゴクアルバム
-    gmi_api_key: str = ""
-    gmi_base_url: str = "https://api.gmi-serving.com"
-    gmi_image_model: str = "bria-fibo"  # -restore / -relight を付けて使う
-    gmi_video_model: str = "hailuo-2.3-image2video"
 
     # 設計書 7-1: 学習不使用の技術的担保。live 呼び出し時に必ず監査ログへ記録する。
     no_training_policy: str = "no-training/no-human-review; family-scoped storage"

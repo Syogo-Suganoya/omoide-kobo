@@ -2,7 +2,6 @@ import type {
   Album,
   Family,
   Job,
-  MotionClip,
   Photo,
   SharedView,
   ShareLink,
@@ -56,10 +55,8 @@ export const api = {
   getJob: (id: string) => request<Job>(`/jobs/${id}`),
 
   getPhoto: (id: string) => request<Photo>(`/photos/${id}`),
-  imageUrl: (id: string, kind: "original" | "restored" | "alt") =>
+  imageUrl: (id: string, kind: "original" | "restored") =>
     `${BASE}/photos/${id}/image/${kind}`,
-  chooseVariant: (id: string, variant: "restored" | "alt", chosen_by: string) =>
-    request<Photo>(`/photos/${id}/variant`, { method: "POST", body: json({ variant, chosen_by }) }),
   confirmPhoto: (
     id: string,
     payload: {
@@ -92,16 +89,6 @@ export const api = {
     stamina: string;
     start_time?: string;
   }) => request<Trip>("/trips", { method: "POST", body: json(payload) }),
-
-  requestMotion: (photoId: string, requested_by: string, includes_deceased: boolean) =>
-    request<MotionClip>(`/photos/${photoId}/motion`, {
-      method: "POST",
-      body: json({ requested_by, includes_deceased }),
-    }),
-  listMotions: (photoId: string) => request<MotionClip[]>(`/photos/${photoId}/motions`),
-  decideConsent: (motionId: string, uid: string, status: "granted" | "denied") =>
-    request<MotionClip>(`/motions/${motionId}/consent`, { method: "POST", body: json({ uid, status }) }),
-  motionVideoUrl: (motionId: string) => `${BASE}/motions/${motionId}/video`,
 
   createShare: (payload: {
     family_id: string;

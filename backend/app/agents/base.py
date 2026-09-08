@@ -3,7 +3,6 @@
 autonomy はコード上の約束事:
 - autonomous      … 家族の承認なしに進めてよい
 - propose_only    … 提示までで、確定は家族が行う
-- consent_gated   … 家族全員の同意が揃うまで実行しない（ウゴクアルバム）
 """
 
 from __future__ import annotations
@@ -12,7 +11,7 @@ from abc import ABC, abstractmethod
 from dataclasses import dataclass, field
 from typing import Any, Literal
 
-Autonomy = Literal["autonomous", "propose_only", "consent_gated"]
+Autonomy = Literal["autonomous", "propose_only"]
 
 
 @dataclass

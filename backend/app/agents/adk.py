@@ -12,14 +12,12 @@ from typing import Any
 from app.agents.orchestrator import get_orchestrator
 from app.config import get_settings
 from app.models import Stamina, Trip
-from app.repo import get_family, get_photo, list_family_photos, save_motion, save_trip
+from app.repo import get_photo, list_family_photos, save_trip
 
 INSTRUCTION = """あなたは家族の古写真をよみがえらせる「オモイデ工房」の進行役です。
 写真の修復、場所と年代の推定、家族への確認質問、思い出の地を巡る旅程作成をツールで進めます。
 推定は必ず候補・根拠・確度として伝え、断定はしません。場所の確定は常に家族の記憶を優先します。
-親の体力に配慮し、休憩を織り込んだ旅程を提案してください。
-写真を動かす「ウゴクアルバム」は、故人が写る場合に家族全員の同意が揃うまで生成しません。
-あなたにできるのは依頼を立てるところまでで、同意の代行はしません。"""
+親の体力に配慮し、休憩を織り込んだ旅程を提案してください。"""
 
 
 async def restore_photo(photo_id: str) -> dict[str, Any]:
@@ -59,31 +57,7 @@ async def plan_trip(family_id: str, photo_ids: list[str], origin: str, stamina: 
     return {"summary": result.summary, **result.data}
 
 
-async def request_motion_clip(photo_id: str, requested_by: str, includes_deceased: bool) -> dict[str, Any]:
-    """カラー化写真を数秒動かす「ウゴクアルバム」を依頼する。
-
-    生成はここでは行わない。故人が写る場合は家族全員の同意が揃うまで開始しないため、
-    エージェントにできるのは依頼を立てるところまで（設計書 12章）。
-    """
-    photo = await get_photo(photo_id)
-    if photo is None:
-        return {"error": "写真が見つかりません"}
-    family = await get_family(photo.family_id)
-    if family is None:
-        return {"error": "家族が見つかりません"}
-    clip = get_orchestrator().motion.prepare(
-        photo=photo, family=family, requested_by=requested_by, includes_deceased=includes_deceased
-    )
-    await save_motion(clip)
-    return {
-        "motion_id": clip.id,
-        "status": clip.status.value,
-        "consent_required_from": [c.name for c in clip.consents],
-        "scope": clip.scope,
-    }
-
-
-TOOLS = [restore_photo, estimate_photo, capture_story, plan_trip, request_motion_clip]
+TOOLS = [restore_photo, estimate_photo, capture_story, plan_trip]
 
 
 def adk_status() -> dict[str, Any]:

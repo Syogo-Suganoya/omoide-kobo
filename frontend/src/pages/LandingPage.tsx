@@ -109,12 +109,12 @@ const STEPS: GuideStep[] = [
   },
   {
     phase: "② 確かめる",
-    title: "仕上がりを見比べて、残す方を選ぶ",
+    title: "仕上がりを見比べる",
     image: "/guide/04-compare.png",
     detail: (
       <>
-        写真を開くと、修復前と後を左右に比べられます。<kbd>カラー化</kbd> と <kbd>復元＋再照明</kbd> を
-        切り替えて見て、良い方を <kbd>こちらを採用する</kbd>。
+        写真を開くと、修復前と後を左右に比べられます。真ん中のつまみを動かすと、
+        どこがどう変わったかが分かります。元の写真はそのまま保管されています。
       </>
     ),
   },
@@ -142,20 +142,9 @@ const STEPS: GuideStep[] = [
     ),
   },
   {
-    phase: "② 確かめる",
-    title: "写真を少しだけ動かす",
-    image: "/guide/07-motion.png",
-    detail: (
-      <>
-        <kbd>ウゴクアルバム</kbd> の欄で、亡くなった家族が写るかを申告して <kbd>ウゴクアルバムを作る</kbd>。
-        写る場合は、家族それぞれが <kbd>同意する</kbd> を押し、全員そろって初めて作られます。
-      </>
-    ),
-  },
-  {
     phase: "③ 出かける",
     title: "巡礼の旅程を組む",
-    image: "/guide/08-trip.png",
+    image: "/guide/07-trip.png",
     detail: (
       <>
         <kbd>旅をつくる</kbd> を開き、確定した場所の写真を選びます。出発地・日付・
@@ -166,7 +155,7 @@ const STEPS: GuideStep[] = [
   {
     phase: "③ 分かち合う",
     title: "家族に共有する",
-    image: "/guide/09-share.png",
+    image: "/guide/08-share.png",
     detail: (
       <>
         <kbd>家族に見せる</kbd> でアルバムと期限を選び、<kbd>リンクを作る</kbd>。
@@ -211,7 +200,7 @@ export default function LandingPage() {
         <p className="assurance">
           <b>AI に思い出を作り替えられるのが不安な方へ。</b>
           場所も年代も、AI が出すのは候補です。確定するのは家族で、訂正すればそちらが記録になります。
-          写真を動かす機能は、故人が写るなら家族全員の同意が揃うまで動きません。
+          元の写真は上書きせず、そのまま保管します。
           預かった写真と語りをモデルの学習に使うこともありません。
         </p>
       </section>

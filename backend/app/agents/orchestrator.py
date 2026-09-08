@@ -11,7 +11,6 @@ import logging
 from app.agents.base import Agent, AgentResult
 from app.agents.estimate import EstimateAgent
 from app.agents.itinerary import ItineraryAgent
-from app.agents.motion import MotionAgent
 from app.agents.restore import RestoreAgent
 from app.agents.story import StoryAgent
 from app.models import Job, JobStatus, PhotoStatus
@@ -30,12 +29,11 @@ class Orchestrator(Agent):
         self.estimate = EstimateAgent()
         self.story = StoryAgent()
         self.itinerary = ItineraryAgent()
-        self.motion = MotionAgent()
 
     def roster(self) -> list[dict[str, str]]:
         return [
             a.describe()
-            for a in (self, self.restore, self.estimate, self.story, self.itinerary, self.motion)
+            for a in (self, self.restore, self.estimate, self.story, self.itinerary)
         ]
 
     async def run(self, *, job: Job) -> AgentResult:  # type: ignore[override]

@@ -134,12 +134,6 @@ class Photo(BaseModel):
     restored_ref: str | None = None
     restore_steps: list[str] = Field(default_factory=list)
     restored_provider: str = ""
-    # もう一系統の修復結果（GMI Cloud の bria-fibo restore/relight）。
-    # 設計書 12章 に従い、どちらが良いかは家族が見比べて決める。AI は選ばない。
-    alt_restored_ref: str | None = None
-    alt_restore_steps: list[str] = Field(default_factory=list)
-    alt_restored_provider: str = ""
-    preferred_variant: Literal["restored", "alt"] | None = None  # 家族が選んだ方
     estimate: Estimate | None = None
     questions: list[FamilyQuestion] = Field(default_factory=list)
     confirmed: Confirmed = Field(default_factory=Confirmed)
@@ -150,9 +144,7 @@ class Photo(BaseModel):
 
     @property
     def preferred_ref(self) -> str | None:
-        """家族が見比べて選んだ修復結果。選んでいなければ既定（YouCam 系）。"""
-        if self.preferred_variant == "alt" and self.alt_restored_ref:
-            return self.alt_restored_ref
+        """表示に使う画像。修復が終わっていなければ元画像。"""
         return self.restored_ref or self.original_ref
 
     @property
@@ -231,64 +223,6 @@ class Trip(BaseModel):
     created_at: datetime = Field(default_factory=now)
 
 
-# --------------------------------------------------------------------------- ウゴクアルバム
-
-class ConsentStatus(str, Enum):
-    pending = "pending"
-    granted = "granted"
-    denied = "denied"
-
-
-class MotionConsent(BaseModel):
-    uid: str
-    name: str
-    status: ConsentStatus = ConsentStatus.pending
-    decided_at: datetime | None = None
-
-
-class MotionStatus(str, Enum):
-    pending_consent = "pending_consent"  # 家族の同意待ち（生成は始めない）
-    denied = "denied"  # 誰か一人でも反対したら生成しない
-    generating = "generating"
-    ready = "ready"
-    failed = "failed"
-
-
-# 生成してよい範囲。設計書 12章：発話や新規の行動は作らない。
-MOTION_SCOPE = "その場の自然な動き（風・光・わずかな身じろぎ）のみ。発話・新規の行動は生成しない"
-
-
-class MotionClip(BaseModel):
-    """カラー化した写真を数秒だけ動かしたもの。
-
-    故人が写る場合は家族全員の同意が揃うまで生成しない。生成物には必ず AI 生成の透かしを入れる。
-    """
-
-    id: str = Field(default_factory=lambda: new_id("mov"))
-    photo_id: str
-    family_id: str
-    requested_by: str
-    includes_deceased: bool = False
-    status: MotionStatus = MotionStatus.pending_consent
-    consents: list[MotionConsent] = Field(default_factory=list)
-    scope: str = MOTION_SCOPE
-    watermarked: bool = True  # 実写真と混同させないため、必ず透かしを入れる
-    video_ref: str | None = None
-    media_type: str = "image/gif"
-    model: str = ""
-    error: str | None = None
-    created_at: datetime = Field(default_factory=now)
-    generated_at: datetime | None = None
-
-    @property
-    def consent_complete(self) -> bool:
-        return all(c.status is ConsentStatus.granted for c in self.consents)
-
-    @property
-    def consent_denied(self) -> bool:
-        return any(c.status is ConsentStatus.denied for c in self.consents)
-
-
 # --------------------------------------------------------------------------- 共有
 
 class ShareTarget(str, Enum):
@@ -330,9 +264,6 @@ class AuditAction(str, Enum):
     trip_plan = "trip_plan"
     share = "share"
     share_view = "share_view"
-    motion_request = "motion_request"
-    motion_consent = "motion_consent"
-    motion_generate = "motion_generate"
     variant_select = "variant_select"
     share_revoke = "share_revoke"
     share_scope_change = "share_scope_change"

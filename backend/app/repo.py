@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 from app.infra.store import get_store
-from app.models import Album, AuditLog, Family, Job, MotionClip, Photo, ShareLink, Trip, now
+from app.models import Album, AuditLog, Family, Job, Photo, ShareLink, Trip, now
 
 FAMILIES = "families"
 ALBUMS = "albums"
@@ -12,7 +12,6 @@ TRIPS = "trips"
 AUDIT = "audit"
 JOBS = "jobs"
 SHARES = "shares"
-MOTIONS = "motions"
 
 
 async def save_family(family: Family) -> Family:
@@ -102,20 +101,6 @@ async def list_shares(family_id: str) -> list[ShareLink]:
     return sorted(links, key=lambda link: link.created_at, reverse=True)
 
 
-async def save_motion(clip: MotionClip) -> MotionClip:
-    await get_store().put(MOTIONS, clip.id, clip.model_dump(mode="json"))
-    return clip
-
-
-async def get_motion(motion_id: str) -> MotionClip | None:
-    doc = await get_store().get(MOTIONS, motion_id)
-    return MotionClip(**doc) if doc else None
-
-
-async def list_motions(photo_id: str) -> list[MotionClip]:
-    return [MotionClip(**d) for d in await get_store().query(MOTIONS, photo_id=photo_id)]
-
-
 async def append_audit(log: AuditLog) -> AuditLog:
     await get_store().put(AUDIT, log.id, log.model_dump(mode="json"))
     return log
@@ -135,7 +120,6 @@ async def purge_family(family_id: str) -> dict[str, int]:
         TRIPS: await store.delete_where(TRIPS, family_id=family_id),
         JOBS: await store.delete_where(JOBS, family_id=family_id),
         SHARES: await store.delete_where(SHARES, family_id=family_id),
-        MOTIONS: await store.delete_where(MOTIONS, family_id=family_id),
     }
     await store.delete(FAMILIES, family_id)
     removed[FAMILIES] = 1

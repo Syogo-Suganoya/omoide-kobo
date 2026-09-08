@@ -3,9 +3,8 @@ import { useParams } from "react-router-dom";
 
 import { api } from "../api";
 import { BeforeAfter, Confidence, ErrorBar, StatusChip } from "../components/bits";
-import { MotionPanel, VariantPicker } from "../components/motion";
 import { NowBar } from "../components/nowbar";
-import type { Family, MotionClip, Photo } from "../types";
+import type { Photo } from "../types";
 
 function useRecorder(onDone: (blob: Blob) => void) {
   const [recording, setRecording] = useState(false);
@@ -37,11 +36,7 @@ function useRecorder(onDone: (blob: Blob) => void) {
 export default function PhotoPage() {
   const { photoId = "" } = useParams();
   const [photo, setPhoto] = useState<Photo | null>(null);
-  // 同意を求める相手は、画面上部で選ばれている家族ではなく、この写真が属する家族
-  const [family, setFamily] = useState<Family | null>(null);
-  const [motions, setMotions] = useState<MotionClip[]>([]);
   const [siblings, setSiblings] = useState<Photo[]>([]);
-  const [showing, setShowing] = useState<"restored" | "alt">("restored");
   const [answers, setAnswers] = useState<Record<string, string>>({});
   const [place, setPlace] = useState("");
   const [era, setEra] = useState("");
@@ -52,13 +47,9 @@ export default function PhotoPage() {
   const [error, setError] = useState<unknown>(null);
 
   const load = useCallback(async () => {
-    const [p, clips] = await Promise.all([api.getPhoto(photoId), api.listMotions(photoId)]);
+    const p = await api.getPhoto(photoId);
     setPhoto(p);
-    setMotions(clips);
-    const [fam, album] = await Promise.all([api.getFamily(p.family_id), api.listPhotos(p.album_id)]);
-    setFamily(fam);
-    setSiblings(album);
-    setShowing(p.preferred_variant === "alt" ? "alt" : "restored");
+    setSiblings(await api.listPhotos(p.album_id));
     setPlace(p.confirmed.place ?? "");
     setEra(p.confirmed.era ?? p.estimate?.era?.label ?? "");
     setCorrection(p.confirmed.family_correction ?? "");
@@ -67,15 +58,6 @@ export default function PhotoPage() {
   useEffect(() => {
     load().catch(setError);
   }, [load]);
-
-  // 生成はバックグラウンドで進むので、終わるまで見に行く
-  useEffect(() => {
-    if (!motions.some((m) => m.status === "generating")) return;
-    const timer = setInterval(() => {
-      api.listMotions(photoId).then(setMotions).catch(setError);
-    }, 1500);
-    return () => clearInterval(timer);
-  }, [motions, photoId]);
 
   const run = async (key: string, fn: () => Promise<unknown>) => {
     setBusy(key);
@@ -125,32 +107,18 @@ export default function PhotoPage() {
             {photo.restored_ref ? (
               <BeforeAfter
                 before={api.imageUrl(photo.id, "original")}
-                after={api.imageUrl(photo.id, showing === "alt" ? "alt" : "restored")}
+                after={api.imageUrl(photo.id, "restored")}
               />
             ) : (
               <div className="empty">修復中です…</div>
             )}
-            {photo.alt_restored_ref ? (
-              <VariantPicker
-                photoId={photo.id}
-                altSteps={photo.alt_restore_steps}
-                preferred={photo.preferred_variant}
-                showing={showing}
-                busy={busy !== null}
-                onShow={setShowing}
-                onChoose={(variant) =>
-                  run("variant", () => api.chooseVariant(photo.id, variant, who))
-                }
-              />
-            ) : (
-              <div className="row" style={{ marginTop: 10 }}>
-                {photo.restore_steps.map((step) => (
-                  <span key={step} className="chip iro">
-                    {step}
-                  </span>
-                ))}
-              </div>
-            )}
+            <div className="row" style={{ marginTop: 10 }}>
+              {photo.restore_steps.map((step) => (
+                <span key={step} className="chip iro">
+                  {step}
+                </span>
+              ))}
+            </div>
           </section>
 
           {photo.estimate && (
@@ -408,17 +376,6 @@ export default function PhotoPage() {
             )}
           </details>
 
-          <MotionPanel
-            family={family}
-            clips={motions}
-            busy={busy !== null}
-            onRequest={(includesDeceased) =>
-              run("motion", () => api.requestMotion(photo.id, who, includesDeceased))
-            }
-            onConsent={(motionId, uid, status) =>
-              run("consent", () => api.decideConsent(motionId, uid, status))
-            }
-          />
         </div>
       </div>
     </>

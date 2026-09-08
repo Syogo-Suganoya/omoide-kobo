@@ -87,11 +87,6 @@ docker compose exec web npm run build       # フロントの型検査（tsc -b�
 | `test_purge_family_removes_photos_and_blobs` | 家族単位の完全削除 |
 | `test_share_link_lifecycle` ほか | 共有リンクの期限・失効・横漏れ防止 |
 | `test_put_get_query_delete` | Firestore ドライバの読み書き・家族スコープでの絞り込みと一括削除 |
-| `test_deceased_photo_waits_for_every_family_member` | 全員の同意が揃うまで動画を生成しないこと |
-| `test_one_refusal_blocks_generation` | 一人でも反対したら生成しないこと |
-| `test_agent_refuses_to_generate_without_consent` | API を迂回してエージェントを直接叩いても同意ゲートが効くこと |
-| `test_generated_clip_is_watermarked_and_moving` | 生成物に透かしが入っていること |
-| `test_restore_produces_two_variants` | 修復が2系統でき、どちらを採るかを AI が決めないこと |
 
 これらが落ちる変更は、機能の後退ではなく**設計の前提の後退**です。テストを直す前に、実装を疑ってください。
 
@@ -105,9 +100,8 @@ backend/
     estimate.py              場所/年代を根拠と確度つきで提示（提示まで）
     story.py                 語りの構造化（抽出は自律・確定は家族）
     itinerary.py             現況確認 → 休憩込みの旅程生成（提案まで）
-    motion.py                ウゴクアルバム（家族全員の同意が揃うまで生成しない）
     adk.py                   Agent Development Kit へのブリッジ（live 時に LlmAgent 化）
-  app/adapters/              gemini / youcam / gmi / ekispert / speech（mock ⇄ live）
+  app/adapters/              gemini / youcam / ekispert / speech（mock ⇄ live）
   app/infra/                 store.py（Firestore。memory はテスト用）, blobs.py（GCS or ローカル・家族スコープ強制）
   app/api/                   FastAPI ルータ
   tests/                     パイプラインとガバナンスの回帰
@@ -152,12 +146,11 @@ docs/architecture.py         アーキテクチャ図の定義
 | `01-family.png` | 「写真をなおす」の入口（写真を入れる） |
 | `02-upload.png` | 写真を入れる枠 |
 | `03-progress.png` | 取り込みの進行 |
-| `04-compare.png` | 写真ページの修復前後スライダと採用ボタン |
+| `04-compare.png` | 写真ページの修復前後スライダ |
 | `05-confirm.png` | AI の推定と家族の確定フォーム |
 | `06-story.png` | 語りの録音 |
-| `07-motion.png` | ウゴクアルバムの同意 |
-| `08-trip.png` | 旅程 |
-| `09-share.png` | 共有リンク |
+| `07-trip.png` | 旅程 |
+| `08-share.png` | 共有リンク |
 
 横長（16:10 あたり）で撮ると、一覧のサムネイルと縦横比が揃います。
 説明文とファイル名の対応は [LandingPage.tsx](frontend/src/pages/LandingPage.tsx) の `STEPS` にあります。
@@ -171,7 +164,6 @@ docs/architecture.py         アーキテクチャ図の定義
 3. **外部 API を叩いたら記録する** — `audit.record_external_call` を通し、非学習ポリシーを証跡に残す
 4. **Storage の参照は `make_ref` 経由** — `family/{familyId}/…` 以外は `blobs.py` が弾く
 5. **共有は期限つき・失効可能** — 期限なしの公開 URL は作らない
-6. **動画生成は同意ゲートの内側** — 故人が写るなら全員の同意が揃うまで生成しない。生成範囲は「その場の自然な動き」に限り、透かしを必ず入れる
 
 ### 外部 API を足すとき
 
@@ -185,7 +177,6 @@ mock は鍵なしでデモが最後まで通る品質にしてください（決
 
 - `autonomous` — 家族の承認なしに進めてよい
 - `propose_only` — 提示・提案まで。確定は家族が行う
-- `consent_gated` — 家族全員の同意が揃うまで実行しない
 
 `propose_only` のエージェントが確定フィールドに書いていないか、レビューで見てください。
 
@@ -217,10 +208,6 @@ OpenAPI は http://localhost:8080/docs にあります。
 | POST | `/api/photos/{id}/reestimate` | 訂正を踏まえた再推定 |
 | POST | `/api/photos/{id}/story` | 語り（音声）の記録 |
 | POST | `/api/trips` | 旅程の生成 |
-| POST | `/api/photos/{id}/variant` | 2系統の修復からどちらを採るか選ぶ |
-| POST | `/api/photos/{id}/motion` | ウゴクアルバムの依頼（同意が要るなら待機に入る） |
-| POST | `/api/motions/{id}/consent` | 家族ひとりの同意・不同意 |
-| GET | `/api/motions/{id}/video` | 生成されたクリップ |
 | POST | `/api/share` | 期限つき共有リンクの発行 |
 | GET | `/api/shared/{token}` | 共有リンクの閲覧（ログイン不要・読むだけ） |
 | POST | `/api/shares/{token}/revoke` | 共有の停止 |
@@ -235,9 +222,8 @@ OpenAPI は http://localhost:8080/docs にあります。
 - **Gemini** — 昭和期の駅・商店街・海岸・神社を題材にした推定フィクスチャ（根拠・確度つき）を、ファイル名から決定的に返す。家族の訂正が入ると該当候補の確度が上がる挙動まで再現する
 - **駅すぱあと** — 徒歩→特急→乗換→在来線→徒歩 の区間列を生成（休憩の挿入と体力配慮は本実装側のロジック）
 - **Speech-to-Text** — 語りのサンプル書き起こしを返す
-- **GMI Cloud** — Pillow で別系統の修復（強めのノイズ除去＋階調伸長／斜めからの再照明）を作り、image-to-video は寄りながら流れる数秒の GIF を生成する。透かしは mock/live どちらでも本実装側で焼き込む
 
-YouCam・駅すぱあと・GMI Cloud の live クライアントは、実キーでの疎通確認がまだです。
+YouCam・駅すぱあとの live クライアントは、実キーでの疎通確認がまだです。
 鍵を入れる際に公式ドキュメントとエンドポイントを突き合わせてください（コード中にその旨コメントがあります）。
 
 ## デプロイ

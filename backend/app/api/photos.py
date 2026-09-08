@@ -70,13 +70,9 @@ async def get_photo(photo_id: str) -> Photo:
 
 
 @router.get("/photos/{photo_id}/image/{kind}")
-async def get_image(photo_id: str, kind: Literal["original", "restored", "alt"]) -> Response:
+async def get_image(photo_id: str, kind: Literal["original", "restored"]) -> Response:
     photo = await _load(photo_id)
-    ref = {
-        "original": photo.original_ref,
-        "restored": photo.restored_ref,
-        "alt": photo.alt_restored_ref,  # GMI Cloud の restore+relight
-    }[kind]
+    ref = {"original": photo.original_ref, "restored": photo.restored_ref}[kind]
     if not ref:
         raise HTTPException(404, "画像がまだありません")
     data = await anyio.to_thread.run_sync(get_blobs().read, ref)
