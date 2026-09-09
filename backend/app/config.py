@@ -31,7 +31,16 @@ class Settings(BaseSettings):
     gemini_model: str = "gemini-3.7-flash"
     youcam_api_key: str = ""
     youcam_secret_key: str = ""
-    ekispert_mcp_url: str = ""
+    # 駅すぱあと API MCP サーバー（Streamable HTTP）。キーはヘッダで渡す
+    ekispert_mcp_url: str = "https://api-mcp.ekispert.jp/mcp"
+    ekispert_api_key: str = ""
+    # json | xml。こちらは JSON しか解釈しないので固定
+    ekispert_response_format: str = "json"
+    # 探索種別。ダイヤ探索（departure など）は専用アクセスキーが要るため、既定は平均待ち時間探索。
+    # 専用キーを取得したら departure にすると、時刻表に沿った経路になる（旅程の時刻計算はこちら側の責務）。
+    ekispert_search_type: Literal[
+        "plain", "departure", "arrival", "lastTrain", "firstTrain"
+    ] = "plain"
 
 
     # 設計書 7-1: 学習不使用の技術的担保。live 呼び出し時に必ず監査ログへ記録する。

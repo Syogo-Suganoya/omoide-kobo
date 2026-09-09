@@ -86,6 +86,7 @@ docker compose exec web npm run build       # フロントの型検査（tsc -b�
 | `test_audit_records_external_calls_with_policy` | 外部呼び出しが非学習ポリシーつきで記録されること |
 | `test_purge_family_removes_photos_and_blobs` | 家族単位の完全削除 |
 | `test_share_link_lifecycle` ほか | 共有リンクの期限・失効・横漏れ防止 |
+| `test_course_becomes_sections_in_order` ほか | 駅すぱあとの応答（Point と Line の交互並び）の読み方 |
 | `test_put_get_query_delete` | Firestore ドライバの読み書き・家族スコープでの絞り込みと一括削除 |
 
 これらが落ちる変更は、機能の後退ではなく**設計の前提の後退**です。テストを直す前に、実装を疑ってください。
@@ -223,8 +224,31 @@ OpenAPI は http://localhost:8080/docs にあります。
 - **駅すぱあと** — 徒歩→特急→乗換→在来線→徒歩 の区間列を生成（休憩の挿入と体力配慮は本実装側のロジック）
 - **Speech-to-Text** — 語りのサンプル書き起こしを返す
 
-YouCam・駅すぱあとの live クライアントは、実キーでの疎通確認がまだです。
-鍵を入れる際に公式ドキュメントとエンドポイントを突き合わせてください（コード中にその旨コメントがあります）。
+## 駅すぱあと API MCP サーバー
+
+`EKISPERT_MODE=live` のとき、[公式の MCP サーバー](https://github.com/ValLaboratory/ekispert-api-mcp-server-docs)
+（`https://api-mcp.ekispert.jp/mcp`）へ Streamable HTTP で繋ぎます。素の JSON-RPC POST では通らないので、
+`initialize` → `notifications/initialized` → `tools/call` の順に投げ、応答は SSE でも JSON でも読めるようにしてあります。
+
+- 経路探索のツール名は `ekispert_api_search_routes`（中身は `/search/course/extreme`）
+- 出発・経由・目的地は **コロン区切りの `viaList` 1本**（駅名・駅コード・住所・座標のいずれも可）
+- アクセスキーは `ekispert-api-access-key` ヘッダ。`EKISPERT_API_KEY` に入れる
+
+疎通確認は、アプリを立ち上げずにこれだけで試せます。
+
+```bash
+docker compose run --rm api python -m scripts.check_ekispert 東京 京都
+```
+
+握手とツール一覧までは鍵なしで確認済みです（サーバー v0.3.0・ツール6種）。
+**経路探索そのものは実キーでの確認がまだ**なので、鍵を入れた人は上のコマンドを一度通してください。
+YouCam の live クライアントも同様に未確認です。
+
+> [!CAUTION]
+> ダイヤ探索（`departure` / `arrival` / `lastTrain` / `firstTrain`）と `time` パラメータは、
+> **2026年後半以降は専用アクセスキーが必要になる予定**と公式に告知されています（発行手続きは準備中）。
+> 旅程は出発時刻を指定して組むのでこの制限に当たります。塞がれた場合は `searchType` を既定の
+> `plain`（平均待ち時間探索）に落とし、`time` を送らない形に切り替えてください。
 
 ## デプロイ
 

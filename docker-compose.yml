@@ -28,7 +28,9 @@ services:
       GEMINI_MODEL: ${GEMINI_MODEL:-gemini-3.7-flash}
       YOUCAM_API_KEY: ${YOUCAM_API_KEY:-}
       YOUCAM_SECRET_KEY: ${YOUCAM_SECRET_KEY:-}
-      EKISPERT_MCP_URL: ${EKISPERT_MCP_URL:-}
+      EKISPERT_API_KEY: ${EKISPERT_API_KEY:-}
+      EKISPERT_MCP_URL: ${EKISPERT_MCP_URL:-https://api-mcp.ekispert.jp/mcp}
+      EKISPERT_SEARCH_TYPE: ${EKISPERT_SEARCH_TYPE:-plain}
     volumes:
       - ./backend:/app
       - omoide-data:/data

@@ -102,6 +102,7 @@ gcloud firestore databases create --location=$REGION
 ```bash
 printf '%s' 'YOUR_GEMINI_KEY' | gcloud secrets create gemini-key --data-file=-
 printf '%s' 'YOUR_YOUCAM_KEY' | gcloud secrets create youcam-key --data-file=-
+printf '%s' 'YOUR_EKISPERT_KEY' | gcloud secrets create ekispert-key --data-file=-
 ```
 
 キーをシェル履歴に残したくなければ `--data-file=path/to/key.txt` を使ってください。
@@ -126,6 +127,8 @@ gcloud storage buckets add-iam-policy-binding gs://$BUCKET \
 gcloud secrets add-iam-policy-binding gemini-key \
   --member="serviceAccount:$SA" --role="roles/secretmanager.secretAccessor"
 gcloud secrets add-iam-policy-binding youcam-key \
+  --member="serviceAccount:$SA" --role="roles/secretmanager.secretAccessor"
+gcloud secrets add-iam-policy-binding ekispert-key \
   --member="serviceAccount:$SA" --role="roles/secretmanager.secretAccessor"
 ```
 
@@ -169,8 +172,8 @@ gcloud run deploy $SERVICE \
 
 ```bash
 gcloud run services update $SERVICE --region $REGION \
-  --set-env-vars "GEMINI_MODE=live,YOUCAM_MODE=live,GEMINI_MODEL=gemini-3.7-flash" \
-  --set-secrets "GEMINI_API_KEY=gemini-key:latest,YOUCAM_API_KEY=youcam-key:latest"
+  --set-env-vars "GEMINI_MODE=live,YOUCAM_MODE=live,EKISPERT_MODE=live,GEMINI_MODEL=gemini-3.7-flash" \
+  --set-secrets "GEMINI_API_KEY=gemini-key:latest,YOUCAM_API_KEY=youcam-key:latest,EKISPERT_API_KEY=ekispert-key:latest"
 ```
 
 `--allow-unauthenticated` を付けるのは、**共有リンクを受け取った家族がログインなしで開ける**ようにするためです。
@@ -280,8 +283,8 @@ gcloud builds submit --config cloudbuild.yaml \
        | `EKISPERT_MODE` | `mock` |
        | `SPEECH_MODE` | `mock` |
 
-     - live にする場合は「シークレットの参照」から `gemini-key` / `youcam-key` を選び、
-       **環境変数として公開**、名前を `GEMINI_API_KEY` / `YOUCAM_API_KEY`、バージョンは `latest`
+     - live にする場合は「シークレットの参照」から `gemini-key` / `youcam-key` / `ekispert-key` を選び、
+       **環境変数として公開**、名前を `GEMINI_API_KEY` / `YOUCAM_API_KEY` / `EKISPERT_API_KEY`、バージョンは `latest`
    - **セキュリティ**タブ
      - **サービス アカウント** に `omoide-kobo-run@…` を選ぶ
 6. 「作成」を押す。1〜2分で URL が表示されます
