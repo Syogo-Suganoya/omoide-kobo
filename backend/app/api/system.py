@@ -39,7 +39,6 @@ async def agents() -> dict[str, object]:
         "roster": get_orchestrator().roster(),
         "modes": {
             "gemini": settings.gemini_mode,
-            "youcam": settings.youcam_mode,
             "ekispert": settings.ekispert_mode,
             "speech": settings.speech_mode,
             "db": settings.db_driver,
@@ -140,7 +139,7 @@ def _public_photo(photo: Any) -> dict[str, Any]:
         "place": photo.resolved_place,
         "era": photo.confirmed.era,
         "story": photo.story.summary if photo.story else None,
-        "has_image": bool(photo.restored_ref or photo.original_ref),
+        "has_image": bool(photo.original_ref),
     }
 
 
@@ -189,7 +188,7 @@ async def shared_image(token: str, photo_id: str) -> Response:
     if link.target_type is ShareTarget.album and photo.album_id != link.target_id:
         raise HTTPException(403, "この共有リンクの対象ではありません")
 
-    ref = photo.restored_ref or photo.original_ref
+    ref = photo.original_ref
     if not ref:
         raise HTTPException(404, "画像がまだありません")
     data = await anyio.to_thread.run_sync(get_blobs().read, ref)

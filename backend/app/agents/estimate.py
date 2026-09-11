@@ -40,7 +40,7 @@ class EstimateAgent(Agent):
         photo.status = PhotoStatus.estimating
         await save_photo(photo)
 
-        ref = photo.restored_ref or photo.original_ref
+        ref = photo.original_ref
         image = await anyio.to_thread.run_sync(blobs.read, ref)
 
         ctx = await build_context(photo)

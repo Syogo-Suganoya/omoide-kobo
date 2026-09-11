@@ -78,7 +78,7 @@ docker compose exec web npm run build       # フロントの型検査（tsc -b�
 
 | テスト | 守っているもの |
 |---|---|
-| `test_ingest_restores_and_proposes` | 元画像の保全 / 推定が候補・根拠・確度つきで、確定していないこと |
+| `test_ingest_proposes_without_confirming` | 預かった写真をそのまま保管 / 推定が候補・根拠・確度つきで、確定していないこと |
 | `test_family_memory_overrides_ai` | 家族の確定が AI の推定より優先され、推定も消えないこと |
 | `test_correction_feeds_back_into_next_estimate` | 訂正が後続の推定コンテキストに入ること |
 | `test_story_does_not_confirm_relations` | 人物関係を AI が確定しないこと |
@@ -96,13 +96,12 @@ docker compose exec web npm run build       # フロントの型検査（tsc -b�
 ```
 backend/
   app/agents/                ADK のエージェント構成に対応
-    orchestrator.py          取り込み→修復→推定→旅程 の進行（自律）
-    restore.py               カラー化・退色/折れ修復・ノイズ除去（自律・元画像は常に保全）
+    orchestrator.py          取り込み→推定→旅程 の進行（自律）
     estimate.py              場所/年代を根拠と確度つきで提示（提示まで）
     story.py                 語りの構造化（抽出は自律・確定は家族）
     itinerary.py             現況確認 → 休憩込みの旅程生成（提案まで）
     adk.py                   Agent Development Kit へのブリッジ（live 時に LlmAgent 化）
-  app/adapters/              gemini / youcam / ekispert / speech（mock ⇄ live）
+  app/adapters/              gemini / ekispert / speech（mock ⇄ live）
   app/infra/                 store.py（Firestore。memory はテスト用）, blobs.py（GCS or ローカル・家族スコープ強制）
   app/api/                   FastAPI ルータ
   tests/                     パイプラインとガバナンスの回帰
@@ -129,7 +128,7 @@ docs/architecture.py         アーキテクチャ図の定義
 条件を満たすまで `disabled` にしたうえで「◯◯すると押せます」を並べて出す。
 選ばせる UI（旅の写真選び）は、色の変化だけに頼らず「選ぶ／✓n番目」の札を出す。
 
-**画面の文言は、いまの中身に合わせて変える。** 例：アルバムの説明は 0枚・修復中・確認待ち・全確定で
+**画面の文言は、いまの中身に合わせて変える。** 例：アルバムの説明は 0枚・推定中・確認待ち・全確定で
 別の文を出す（画面に無い札を探させない）。写真ページの「家族にたずねる」と「語り」は、
 `<details>` の開閉を進み具合に連動させ、いまやることが一番大きく見えるようにする。
 
@@ -147,11 +146,10 @@ docs/architecture.py         アーキテクチャ図の定義
 | `01-family.png` | 「写真をなおす」の入口（写真を入れる） |
 | `02-upload.png` | 写真を入れる枠 |
 | `03-progress.png` | 取り込みの進行 |
-| `04-compare.png` | 写真ページの修復前後スライダ |
-| `05-confirm.png` | AI の推定と家族の確定フォーム |
-| `06-story.png` | 語りの録音 |
-| `07-trip.png` | 旅程 |
-| `08-share.png` | 共有リンク |
+| `04-confirm.png` | AI の推定と家族の確定フォーム |
+| `05-story.png` | 語りの録音 |
+| `06-trip.png` | 旅程 |
+| `07-share.png` | 共有リンク |
 
 横長（16:10 あたり）で撮ると、一覧のサムネイルと縦横比が揃います。
 説明文とファイル名の対応は [LandingPage.tsx](frontend/src/pages/LandingPage.tsx) の `STEPS` にあります。
@@ -160,7 +158,7 @@ docs/architecture.py         アーキテクチャ図の定義
 
 この 5 つは設計書の主題そのもので、コードの都合で崩さないでください。
 
-1. **オリジナルは上書きしない** — 修復結果は必ず別キー（`restored/`）に書く
+1. **預かった写真に手を加えない** — 加工した画像で元を置き換えない。保存は `original/` のみ
 2. **AI は `confirmed` に書かない** — 推定は `estimate`、家族の記憶は `confirmed`。表示は `Photo.resolved_place` を通す
 3. **外部 API を叩いたら記録する** — `audit.record_external_call` を通し、非学習ポリシーを証跡に残す
 4. **Storage の参照は `make_ref` 経由** — `family/{familyId}/…` 以外は `blobs.py` が弾く
@@ -202,7 +200,7 @@ OpenAPI は http://localhost:8080/docs にあります。
 | POST | `/api/families/{id}/members` | 招待（明示招待制） |
 | DELETE | `/api/families/{id}` | 削除権の行使 |
 | POST | `/api/albums` | アルバム作成 |
-| POST | `/api/albums/{id}/photos` | 一括取り込み（修復→推定を自律進行） |
+| POST | `/api/albums/{id}/photos` | 一括取り込み（場所・年代の推定を自律進行） |
 | GET | `/api/families/{id}/photos` | 家族の写真をまとめて取得（「いまやること」の集計用） |
 | GET | `/api/jobs/{id}` | 取り込みジョブの進行 |
 | POST | `/api/photos/{id}/confirm` | 家族の記憶で確定・訂正 |
@@ -219,39 +217,9 @@ OpenAPI は http://localhost:8080/docs にあります。
 
 `*_MODE=mock` のとき、各アダプタは次のように振る舞います。実 API を入れると同じインターフェースのまま置き換わります。
 
-- **YouCam** — Pillow で ノイズ除去 → 退色補正 → 輝度に応じた着色。カラー化相当の見た目を作る
 - **Gemini** — 昭和期の駅・商店街・海岸・神社を題材にした推定フィクスチャ（根拠・確度つき）を、ファイル名から決定的に返す。家族の訂正が入ると該当候補の確度が上がる挙動まで再現する
 - **駅すぱあと** — 徒歩→特急→乗換→在来線→徒歩 の区間列を生成（休憩の挿入と体力配慮は本実装側のロジック）
 - **Speech-to-Text** — 語りのサンプル書き起こしを返す
-
-## YouCam(Perfect Corp) API
-
-`YOUCAM_MODE=live` のとき S2S **v1** を使います（`https://yce-api-01.perfectcorp.com`）。
-認証は素直な Bearer ではなく、**シークレットキーを公開鍵として使う RSA 暗号化**を挟みます。
-
-1. `client_id=<APIキー>&timestamp=<ミリ秒>` を組み立てる
-2. シークレットキー（X.509 を Base64 にした RSA 公開鍵）で暗号化し、Base64 にして `id_token` にする
-3. `POST /s2s/v1.0/client/auth` に `client_id` と `id_token` を投げ、2時間有効の access_token を得る
-4. 以降は `file/{機能}` → PUT で実体をアップロード → `task/{機能}` → ポーリング
-
-**シークレットキーをそのまま `id_token` に入れると 401 になります**（最初そう書いていて弾かれました）。
-
-- 機能名は `colorize` と `enhance`。`enhance` は `params.scale`（1 / 2 / 4）が要る
-- `request_id` は毎回インクリメントする。同じ値だとサーバーが再実行せず、結果も返らない
-- **ポーリングを10秒空けるとタスクが破棄される**ので、応答の `polling_interval` に従う
-- 折れ跡・粒状ノイズの除去に当たる機能は YouCam に無い（`obj-removal` はマスクを渡して消す別物）。
-  `remove_defects` だけはローカルの Pillow 処理のままにしてある
-
-疎通確認は次のとおり。引数なしなら認証だけ、`colorize` を付けると画像1枚を通します（**ユニットを消費します**）。
-
-```bash
-docker compose run --rm api python -m scripts.check_youcam
-docker compose run --rm api python -m scripts.check_youcam colorize
-```
-
-**実キーで疎通確認済みです**（認証・colorize・enhance・取り込みパイプライン全体）。
-401 `Invalid client_id or invalid id_token or key expired` が出るときは、まずコンソールで
-キーの有効期限・アクティベート状態・ユニット残を確認してください。
 
 ## 駅すぱあと API MCP サーバー
 
@@ -271,7 +239,6 @@ docker compose run --rm api python -m scripts.check_ekispert 東京 京都
 
 握手とツール一覧までは鍵なしで確認済みです（サーバー v0.3.0・ツール6種）。
 **経路探索そのものは実キーでの確認がまだ**なので、鍵を入れた人は上のコマンドを一度通してください。
-YouCam の live クライアントも同様に未確認です。
 
 > [!CAUTION]
 > ダイヤ探索（`departure` / `arrival` / `lastTrain` / `firstTrain`）と `time` パラメータは、

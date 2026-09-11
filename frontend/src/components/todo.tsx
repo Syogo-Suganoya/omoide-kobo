@@ -17,8 +17,8 @@ export type Todo = {
  * 家族のいまの状態から「次にやること」を組み立てる。
  * 出す順番＝やる順番。並べ替えず、上から片づければ最後まで進む。
  */
-/** 修復・推定がまだ途中の状態。家族が手を出す段ではない */
-const IN_FLIGHT: PhotoStatus[] = ["uploaded", "restoring", "restored", "estimating"];
+/** 推定がまだ途中の状態。家族が手を出す段ではない */
+const IN_FLIGHT: PhotoStatus[] = ["uploaded", "estimating"];
 
 export function buildTodos(
   photos: Photo[],
@@ -33,8 +33,8 @@ export function buildTodos(
   if (working.length > 0) {
     todos.push({
       phase: "そろえる",
-      title: `${working.length}枚を直しています`,
-      detail: "ノイズを取り、色を戻し、写っている場所を調べています。閉じても進みます。",
+      title: `${working.length}枚を調べています`,
+      detail: "写真に写っているものから、撮影地と年代を調べています。閉じても進みます。",
       to: `/albums/${working[0].album_id}`,
       cta: "進み具合を見る",
       waiting: true,

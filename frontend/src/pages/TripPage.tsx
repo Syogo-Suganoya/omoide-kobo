@@ -103,7 +103,7 @@ export default function TripPage() {
                   className={`polaroid pick ${on ? "on" : ""} ${i % 2 ? "tilt-b" : "tilt-a"}`}
                   onClick={() => toggle(photo.id)}
                 >
-                  <img src={api.imageUrl(photo.id, "restored")} alt={photo.filename} />
+                  <img src={api.imageUrl(photo.id)} alt={photo.filename} />
                   <span className="mark">{on ? `✓ ${selected.indexOf(photo.id) + 1}番目` : "選ぶ"}</span>
                   <span className="cap">{photo.confirmed.place}</span>
                 </button>

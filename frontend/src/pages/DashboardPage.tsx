@@ -140,10 +140,10 @@ export default function DashboardPage() {
     load().catch(setError);
   }, [load]);
 
-  // 修復中の写真があるあいだは、勝手に進む様子が見えるように追いかける
+  // 推定中の写真があるあいだは、勝手に進む様子が見えるように追いかける
   useEffect(() => {
     const working = photos.some((p) =>
-      ["uploaded", "restoring", "restored", "estimating"].includes(p.status)
+      ["uploaded", "estimating"].includes(p.status)
     );
     if (!working || !family) return;
     const timer = setInterval(() => {
@@ -177,7 +177,7 @@ export default function DashboardPage() {
 
       <section className="block">
         {/* メニューの呼び名と見出しを揃える。同じ場所を別の名前で呼ばない */}
-        <h2>写真をなおす</h2>
+        <h2>写真を調べる</h2>
         <div className="row" style={{ justifyContent: "space-between", alignItems: "center" }}>
           <FamilyName id={family.id} name={family.name} />
           <span style={{ color: "var(--sub)", fontSize: "0.82rem" }}>

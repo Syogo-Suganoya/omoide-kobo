@@ -55,8 +55,7 @@ export const api = {
   getJob: (id: string) => request<Job>(`/jobs/${id}`),
 
   getPhoto: (id: string) => request<Photo>(`/photos/${id}`),
-  imageUrl: (id: string, kind: "original" | "restored") =>
-    `${BASE}/photos/${id}/image/${kind}`,
+  imageUrl: (id: string) => `${BASE}/photos/${id}/image/original`,
   confirmPhoto: (
     id: string,
     payload: {

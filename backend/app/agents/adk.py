@@ -1,6 +1,6 @@
 """Agent Development Kit へのブリッジ。
 
-内製のエージェント（restore / estimate / story / itinerary）を ADK のツールとして公開し、
+内製のエージェント（estimate / story / itinerary）を ADK のツールとして公開し、
 Gemini の live モード時は ADK の LlmAgent が自然文の指示からパイプラインを起動できるようにする。
 mock モード（＝鍵なし）では ADK を読み込まず、Orchestrator が直接パイプラインを回す。
 """
@@ -15,18 +15,9 @@ from app.models import Stamina, Trip
 from app.repo import get_photo, list_family_photos, save_trip
 
 INSTRUCTION = """あなたは家族の古写真をよみがえらせる「オモイデ工房」の進行役です。
-写真の修復、場所と年代の推定、家族への確認質問、思い出の地を巡る旅程作成をツールで進めます。
+写真に写った場所と年代の推定、家族への確認質問、思い出の地を巡る旅程作成をツールで進めます。
 推定は必ず候補・根拠・確度として伝え、断定はしません。場所の確定は常に家族の記憶を優先します。
 親の体力に配慮し、休憩を織り込んだ旅程を提案してください。"""
-
-
-async def restore_photo(photo_id: str) -> dict[str, Any]:
-    """写真をカラー化・修復する。元画像は保全される。"""
-    photo = await get_photo(photo_id)
-    if photo is None:
-        return {"error": "写真が見つかりません"}
-    result = await get_orchestrator().restore.run(photo=photo)
-    return {"summary": result.summary, **result.data}
 
 
 async def estimate_photo(photo_id: str) -> dict[str, Any]:
@@ -57,7 +48,7 @@ async def plan_trip(family_id: str, photo_ids: list[str], origin: str, stamina: 
     return {"summary": result.summary, **result.data}
 
 
-TOOLS = [restore_photo, estimate_photo, capture_story, plan_trip]
+TOOLS = [estimate_photo, capture_story, plan_trip]
 
 
 def adk_status() -> dict[str, Any]:
@@ -81,7 +72,7 @@ def build_root_agent() -> Any:
     return LlmAgent(
         name="omoide_kobo_orchestrator",
         model=get_settings().gemini_model,
-        description="古写真の修復・場所推定・語り・巡礼旅程を進めるオーケストレータ",
+        description="古写真の場所推定・語り・巡礼旅程を進めるオーケストレータ",
         instruction=INSTRUCTION,
         tools=list(TOOLS),
     )

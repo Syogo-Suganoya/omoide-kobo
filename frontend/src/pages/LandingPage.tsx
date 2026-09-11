@@ -4,38 +4,34 @@ import { GuideCarousel } from "../components/guide";
 import type { GuideStep } from "../components/guide";
 import { ArtEstimate, ArtRevive, ArtTrip } from "../components/landing-art";
 
-/** 半分だけ色が戻った写真。この企画の看板なので、案内ページの一番上に置く。 */
+/** 写真の手がかりから場所を言い当てる。この企画の看板なので、案内ページの一番上に置く。 */
 function SignaturePhoto() {
   return (
     <div className="signature">
-      <svg viewBox="0 0 440 250" aria-label="左半分が白黒、右半分がカラーになった駅前の写真">
-        <defs>
-          <linearGradient id="split" x1="0" y1="0" x2="1" y2="0">
-            <stop offset="0" stopColor="#9a938a" />
-            <stop offset=".48" stopColor="#9a938a" />
-            <stop offset=".52" stopColor="#7fc4bd" />
-            <stop offset="1" stopColor="#7fc4bd" />
-          </linearGradient>
-        </defs>
-        <rect width="440" height="250" fill="url(#split)" />
+      <svg viewBox="0 0 440 250" aria-label="白黒写真の駅舎・看板・線路に印がつき、撮影地の候補が示される">
+        <rect width="440" height="250" fill="#9a938a" />
         <circle cx="80" cy="52" r="26" fill="#c9c4bb" />
-        <circle cx="360" cy="52" r="26" fill="#f5c542" opacity=".9" />
         <path d="M0 190 L110 90 L200 175 L280 110 L440 200 L440 250 L0 250 Z" fill="#6e675c" />
-        <path d="M220 190 L280 110 L440 200 L440 250 L220 250 Z" fill="#4c8a54" />
-        <rect x="60" y="150" width="90" height="52" fill="#87817a" />
-        <rect x="250" y="150" width="90" height="52" fill="#b9846a" />
-        <path d="M52 150 h106 l-12 -22 h-82 z" fill="#6e675c" />
-        <path d="M242 150 h106 l-12 -22 h-82 z" fill="#8a5a40" />
-        <circle cx="180" cy="196" r="9" fill="#cfc9c0" />
-        <rect x="172" y="205" width="16" height="30" rx="7" fill="#a49d93" />
-        <circle cx="262" cy="196" r="9" fill="#f0c9a8" />
-        <rect x="254" y="205" width="16" height="30" rx="7" fill="#d4694a" />
-        <line x1="220" y1="0" x2="220" y2="250" stroke="#fffdf7" strokeWidth="3" strokeDasharray="8 6" />
-        <text x="110" y="238" fontSize="13" fill="#efe9df" textAnchor="middle" fontFamily="Kiwi Maru">
-          1968年のまま
+        <rect x="150" y="140" width="140" height="62" fill="#87817a" />
+        <path d="M140 140 h160 l-18 -26 h-124 z" fill="#5f594f" />
+        <rect x="186" y="120" width="68" height="16" fill="#cfc9c0" />
+        <circle cx="120" cy="196" r="9" fill="#cfc9c0" />
+        <rect x="112" y="205" width="16" height="30" rx="7" fill="#a49d93" />
+
+        {/* 手がかりに印をつけ、そこから引き出して根拠を書く */}
+        <g stroke="#d4694a" strokeWidth="2" fill="none">
+          <circle cx="220" cy="127" r="24" />
+          <path d="M240 113 L300 74" />
+          <circle cx="120" cy="206" r="20" />
+          <path d="M104 218 L72 228" />
+        </g>
+        <rect x="292" y="52" width="132" height="30" rx="3" fill="#fffdf7" opacity=".95" />
+        <text x="302" y="72" fontSize="13" fill="#3d332a" fontFamily="Kiwi Maru">
+          木造駅舎の妻面
         </text>
-        <text x="330" y="238" fontSize="13" fill="#fffdf7" textAnchor="middle" fontFamily="Kiwi Maru">
-          いろどりを再び
+        <rect x="14" y="214" width="118" height="28" rx="3" fill="#fffdf7" opacity=".95" />
+        <text x="24" y="233" fontSize="13" fill="#3d332a" fontFamily="Kiwi Maru">
+          服装は昭和40年代
         </text>
       </svg>
       <p className="caption">昭和43年　○○駅前にて　—　場所の推定 確度 62%（確定は家族）</p>
@@ -49,9 +45,9 @@ const STORIES = [
     voice: "「実家に帰るたび、押し入れのアルバムが気になる。でも開くと重たくて、そのまま閉じてしまう」",
     problem:
       "何百枚もの白黒写真。どこから手をつけるか決められないまま、また来年になります。整理しようと思ったときには、写っている場所を知っている人がもういない、ということが起こります。",
-    answerTitle: "順番を決める前に、まず色を戻す",
+    answerTitle: "順番を決める前に、まず場所から分かる",
     answer:
-      "アルバムのページをスマホで撮って放り込むだけ。ノイズ除去・退色補正・カラー化が自動で通り、待っている間に場所の推定まで進みます。元の写真には触れず、別に保管したまま直します。",
+      "アルバムのページをスマホで撮って放り込むだけ。待っている間に、1枚ずつ撮影地と年代の推定が進みます。預かった写真に手は加えず、そのまま保管します。",
   },
   {
     art: <ArtEstimate />,
@@ -80,7 +76,7 @@ const STEPS: GuideStep[] = [
     image: "/guide/01-family.png",
     detail: (
       <>
-        <kbd>写真をなおす</kbd> を開いて <kbd>写真を入れる</kbd> を押すだけ。
+        <kbd>写真を調べる</kbd> を開いて <kbd>写真を入れる</kbd> を押すだけ。
         入れ物（家族とアルバム）はこちらで用意するので、最初に名前を考える必要はありません。
       </>
     ),
@@ -98,30 +94,19 @@ const STEPS: GuideStep[] = [
   },
   {
     phase: "① そろえる",
-    title: "修復が終わるのを待つ",
+    title: "推定が終わるのを待つ",
     image: "/guide/03-progress.png",
     detail: (
       <>
-        入れた直後から、ノイズ除去・退色補正・カラー化と場所の推定が自動で進みます。
+        入れた直後から、写っているものを手がかりに撮影地と年代の推定が自動で進みます。
         どこまで進んだかはその場に出るので、閉じても構いません。
       </>
     ),
   },
   {
     phase: "② 確かめる",
-    title: "仕上がりを見比べる",
-    image: "/guide/04-compare.png",
-    detail: (
-      <>
-        写真を開くと、修復前と後を左右に比べられます。真ん中のつまみを動かすと、
-        どこがどう変わったかが分かります。元の写真はそのまま保管されています。
-      </>
-    ),
-  },
-  {
-    phase: "② 確かめる",
     title: "質問に答えて、場所を確定する",
-    image: "/guide/05-confirm.png",
+    image: "/guide/04-confirm.png",
     detail: (
       <>
         右側に AI からの質問と、推定の根拠が並びます。覚えていることを書き、場所を入れて{" "}
@@ -132,7 +117,7 @@ const STEPS: GuideStep[] = [
   {
     phase: "② 確かめる",
     title: "語りを残す",
-    image: "/guide/06-story.png",
+    image: "/guide/05-story.png",
     detail: (
       <>
         写真を見ながら <kbd>● 語りを録音する</kbd> を押して、そのまま話してもらいます。
@@ -144,7 +129,7 @@ const STEPS: GuideStep[] = [
   {
     phase: "③ 出かける",
     title: "巡礼の旅程を組む",
-    image: "/guide/07-trip.png",
+    image: "/guide/06-trip.png",
     detail: (
       <>
         <kbd>旅をつくる</kbd> を開き、確定した場所の写真を選びます。出発地・日付・
@@ -155,7 +140,7 @@ const STEPS: GuideStep[] = [
   {
     phase: "③ 分かち合う",
     title: "家族に共有する",
-    image: "/guide/08-share.png",
+    image: "/guide/07-share.png",
     detail: (
       <>
         <kbd>家族に見せる</kbd> でアルバムと期限を選び、<kbd>リンクを作る</kbd>。
@@ -169,13 +154,13 @@ export default function LandingPage() {
   return (
     <div className="landing">
       <header className="hero">
-        <p className="kicker">思い出カラー化 × 巡礼旅エージェント</p>
+        <p className="kicker">思い出の場所さがし × 巡礼旅エージェント</p>
         <h1>
           オモイデ<em>工房</em>
         </h1>
         <p className="tagline">
-          実家の白黒写真をよみがえらせ、写っている場所を推定し、「もう一度そこへ行く旅」まで組み立てる。
-          色を取り戻した思い出を、家族で巡りに行くためのアプリです。
+          実家の白黒写真に写っている場所を根拠つきで推定し、「もう一度そこへ行く旅」まで組み立てる。
+          どこで撮ったか分からなくなった思い出を、家族で巡りに行くためのアプリです。
         </p>
         <SignaturePhoto />
       </header>
@@ -215,10 +200,10 @@ export default function LandingPage() {
 
       <div className="cta">
         <Link className="btn" to="/home">
-          写真をなおす
+          写真を調べる
         </Link>
         <p style={{ color: "var(--sub)", fontSize: "0.82rem", marginTop: 10 }}>
-          入力は要りません。ボタンひとつで写真を入れる画面まで進み、数分で最初の一枚が色を取り戻します。
+          入力は要りません。ボタンひとつで写真を入れる画面まで進み、数分で最初の一枚の撮影地が分かります。
         </p>
       </div>
     </div>

@@ -75,8 +75,8 @@ export default function AlbumPage() {
       <section className="block">
         <h2>{album?.title ?? "アルバム"}</h2>
         <p className="lead">
-          アルバムの写真をまとめて選ぶと、ノイズ除去・退色補正・カラー化を通したうえで、
-          写っている場所と年代の候補を根拠つきで出します。確定はあとで家族が行います。
+          アルバムの写真をまとめて選ぶと、写っている場所と年代の候補を根拠つきで出します。
+          預かった写真に手は加えません。確定はあとで家族が行います。
         </p>
 
         <div
@@ -107,7 +107,7 @@ export default function AlbumPage() {
 
       {job && (
         <section className="block">
-          <h2>いま直しています</h2>
+          <h2>いま調べています</h2>
           <div className="card">
             <div className="row" style={{ justifyContent: "space-between" }}>
               <JobChip status={job.status} />
@@ -136,7 +136,7 @@ export default function AlbumPage() {
             : awaiting.length > 0
               ? `「家族の確認待ち」の札がついた${awaiting.length}枚から開くと、場所を決める作業に進めます。`
               : working.length > 0
-                ? "直しているあいだ、ここに進み具合が出ます。終わると「家族の確認待ち」の札がつきます。"
+                ? "調べているあいだ、ここに進み具合が出ます。終わると「家族の確認待ち」の札がつきます。"
                 : "この中の場所はすべて確定しました。写真を開くと、語りを残したり、旅程に入れたりできます。"}
         </p>
         {photos.length === 0 ? (
@@ -150,7 +150,7 @@ export default function AlbumPage() {
                 className={`polaroid ${i % 2 ? "tilt-b" : "tilt-a"}`}
               >
                 <img
-                  src={api.imageUrl(photo.id, photo.restored_ref ? "restored" : "original")}
+                  src={api.imageUrl(photo.id)}
                   alt={photo.filename}
                 />
                 <span className="badge">

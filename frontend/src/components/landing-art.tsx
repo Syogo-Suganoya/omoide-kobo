@@ -12,7 +12,7 @@ const GRAY = "#9a938a";
 /** 積まれたままのアルバムから、色が戻った1枚が抜き出される。 */
 export function ArtRevive() {
   return (
-    <svg viewBox="0 0 260 170" role="img" aria-label="閉じたアルバムの山から、色が戻った写真が1枚取り出される">
+    <svg viewBox="0 0 260 170" role="img" aria-label="閉じたアルバムの山から1枚取り出され、地図の上に置かれる">
       <rect x="14" y="104" width="104" height="16" rx="2" fill={BROWN} opacity=".55" />
       <rect x="18" y="88" width="96" height="16" rx="2" fill={BROWN} opacity=".75" />
       <rect x="12" y="72" width="106" height="18" rx="2" fill={BROWN} />
@@ -24,18 +24,20 @@ export function ArtRevive() {
       <path d="M126 92 h30" stroke={LINE} strokeWidth="2" strokeDasharray="5 4" />
       <path d="M150 87 l8 5 -8 5 z" fill={AKA} />
 
+      {/* 地図の上に写真が置かれ、写っている場所に印が立つ */}
       <g transform="rotate(-4 220 78)">
-        <rect x="166" y="34" width="88" height="86" fill={PAPER} stroke={LINE} />
-        <rect x="173" y="41" width="74" height="52" fill="#7fc4bd" />
-        <circle cx="232" cy="54" r="7" fill="#f5c542" />
-        <path d="M173 93 L196 62 L214 82 L228 68 L247 93 Z" fill="#4c8a54" />
-        <rect x="186" y="76" width="20" height="17" fill="#b9846a" />
-        <path d="M183 76 h26 l-4 -7 h-18 z" fill="#8a5a40" />
-        <text x="210" y="110" fontSize="9" fill={SUB} textAnchor="middle" fontFamily="Kiwi Maru">
-          いろどりが戻る
+        <rect x="162" y="30" width="96" height="94" fill={PAPER} stroke={LINE} />
+        <path d="M168 46 h84 M168 66 h84 M168 86 h84" stroke={LINE} strokeWidth="1" />
+        <path d="M186 36 v82 M212 36 v82 M238 36 v82" stroke={LINE} strokeWidth="1" />
+        <path d="M168 104 q28 -14 52 -2 t36 -6" stroke="#7fc4bd" strokeWidth="3" fill="none" />
+        <rect x="176" y="38" width="56" height="42" fill={GRAY} stroke={LINE} />
+        <path d="M182 72 L198 52 L212 68 L226 58 L226 72 Z" fill="#7d766e" />
+        <path d="M204 92 s9 -9 9 -15a9 9 0 1 0 -18 0c0 6 9 15 9 15z" fill={AKA} />
+        <circle cx="204" cy="77" r="3.4" fill={PAPER} />
+        <text x="210" y="116" fontSize="9" fill={SUB} textAnchor="middle" fontFamily="Kiwi Maru">
+          どこで撮ったか分かる
         </text>
       </g>
-      <rect x="196" y="26" width="46" height="12" rx="1" fill={AKA} opacity=".32" transform="rotate(-8 219 32)" />
     </svg>
   );
 }

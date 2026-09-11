@@ -85,8 +85,6 @@ export interface Story {
 
 export type PhotoStatus =
   | "uploaded"
-  | "restoring"
-  | "restored"
   | "estimating"
   | "awaiting_family"
   | "confirmed"
@@ -99,9 +97,6 @@ export interface Photo {
   filename: string;
   status: PhotoStatus;
   original_ref?: string | null;
-  restored_ref?: string | null;
-  restore_steps: string[];
-  restored_provider: string;
   estimate?: Estimate | null;
   questions: FamilyQuestion[];
   confirmed: Confirmed;

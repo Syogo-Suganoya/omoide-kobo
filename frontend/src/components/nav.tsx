@@ -38,7 +38,7 @@ const ITEMS = [
   {
     to: "/home",
     icon: <IconPhoto />,
-    label: "写真をなおす",
+    label: "写真を調べる",
     hint: "アルバムと、次にやること",
   },
   {

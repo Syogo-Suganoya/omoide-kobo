@@ -62,7 +62,7 @@ async def list_family_photos(family_id: str) -> list[Photo]:
 
 @router.post("/albums/{album_id}/photos", response_model=IngestResult)
 async def upload_photos(album_id: str, files: list[UploadFile] = File(...)) -> IngestResult:
-    """アルバム一括取り込み。保存後、修復→推定をバックグラウンドで自律進行させる。"""
+    """アルバム一括取り込み。保存後、場所・年代の推定をバックグラウンドで自律進行させる。"""
     album = await get_album(album_id)
     blobs = get_blobs()
     photos: list[Photo] = []

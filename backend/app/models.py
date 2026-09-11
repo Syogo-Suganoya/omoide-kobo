@@ -48,8 +48,6 @@ class Family(BaseModel):
 
 class PhotoStatus(str, Enum):
     uploaded = "uploaded"
-    restoring = "restoring"
-    restored = "restored"
     estimating = "estimating"
     awaiting_family = "awaiting_family"  # 家族確認待ち（AI は確定しない）
     confirmed = "confirmed"
@@ -131,9 +129,6 @@ class Photo(BaseModel):
     filename: str
     status: PhotoStatus = PhotoStatus.uploaded
     original_ref: str | None = None  # 家族限定バケットの参照。常に保全（上書きしない）
-    restored_ref: str | None = None
-    restore_steps: list[str] = Field(default_factory=list)
-    restored_provider: str = ""
     estimate: Estimate | None = None
     questions: list[FamilyQuestion] = Field(default_factory=list)
     confirmed: Confirmed = Field(default_factory=Confirmed)
@@ -141,11 +136,6 @@ class Photo(BaseModel):
     error: str | None = None
     created_at: datetime = Field(default_factory=now)
     updated_at: datetime = Field(default_factory=now)
-
-    @property
-    def preferred_ref(self) -> str | None:
-        """表示に使う画像。修復が終わっていなければ元画像。"""
-        return self.restored_ref or self.original_ref
 
     @property
     def resolved_place(self) -> str | None:
@@ -257,7 +247,6 @@ class ShareLink(BaseModel):
 
 class AuditAction(str, Enum):
     upload = "upload"
-    restore = "restore"
     estimate = "estimate"
     family_confirm = "family_confirm"
     story_capture = "story_capture"

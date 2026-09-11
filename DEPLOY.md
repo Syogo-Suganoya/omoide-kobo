@@ -15,7 +15,7 @@ main への push で自動デプロイする **GitHub Actions（CD）** も用�
 | Artifact Registry | コンテナイメージの置き場 |
 | Cloud Storage バケット | 写真・音声（家族限定・公開しない） |
 | Firestore | アルバム・写真のメタ情報・物語・旅程・共有リンク・監査ログ |
-| Secret Manager | Gemini / YouCam / 駅すぱあと のキー（YouCam だけ API キーとシークレットキーの2つ） |
+| Secret Manager | Gemini / 駅すぱあと のキー |
 | サービスアカウント | Cloud Run が上記にアクセスするための身元 |
 
 以下の値で書いてあります。プロジェクトを別名で作った場合は読み替えてください。
@@ -48,7 +48,7 @@ main への push で自動デプロイする **GitHub Actions（CD）** も用�
 
 ### CPU の割り当て
 
-取り込み（修復→推定）は**レスポンスを返した後にバックグラウンドで走ります**。
+取り込み（場所・年代の推定）は**レスポンスを返した後にバックグラウンドで走ります**。
 Cloud Run の既定はリクエスト処理中しか CPU が回らないため、**CPU を常時割り当て**にしてください。
 これをしないと、アップロードは成功するのにパイプラインが途中で止まります。
 
@@ -101,9 +101,6 @@ gcloud firestore databases create --location=$REGION
 
 ```bash
 printf '%s' 'YOUR_GEMINI_KEY' | gcloud secrets create gemini-key --data-file=-
-# YouCam は2つ要る（API キー＝client_id、シークレットキー＝id_token）
-printf '%s' 'YOUR_YOUCAM_API_KEY' | gcloud secrets create youcam-key --data-file=-
-printf '%s' 'YOUR_YOUCAM_SECRET_KEY' | gcloud secrets create youcam-secret --data-file=-
 printf '%s' 'YOUR_EKISPERT_KEY' | gcloud secrets create ekispert-key --data-file=-
 ```
 
@@ -127,10 +124,6 @@ gcloud storage buckets add-iam-policy-binding gs://$BUCKET \
 
 # シークレットの読み取り（live のときだけ）
 gcloud secrets add-iam-policy-binding gemini-key \
-  --member="serviceAccount:$SA" --role="roles/secretmanager.secretAccessor"
-gcloud secrets add-iam-policy-binding youcam-key \
-  --member="serviceAccount:$SA" --role="roles/secretmanager.secretAccessor"
-gcloud secrets add-iam-policy-binding youcam-secret \
   --member="serviceAccount:$SA" --role="roles/secretmanager.secretAccessor"
 gcloud secrets add-iam-policy-binding ekispert-key \
   --member="serviceAccount:$SA" --role="roles/secretmanager.secretAccessor"
@@ -169,16 +162,16 @@ gcloud run deploy $SERVICE \
   --no-cpu-throttling \
   --memory 1Gi \
   --timeout 600 \
-  --set-env-vars "DB_DRIVER=firestore,STORAGE_DRIVER=gcs,GCS_BUCKET=$BUCKET,GOOGLE_CLOUD_PROJECT=$PROJECT,GEMINI_MODE=live,YOUCAM_MODE=live,EKISPERT_MODE=live,SPEECH_MODE=mock" \
-  --set-secrets "GEMINI_API_KEY=gemini-key:latest,YOUCAM_API_KEY=youcam-key:latest,YOUCAM_SECRET_KEY=youcam-secret:latest,EKISPERT_API_KEY=ekispert-key:latest"
+  --set-env-vars "DB_DRIVER=firestore,STORAGE_DRIVER=gcs,GCS_BUCKET=$BUCKET,GOOGLE_CLOUD_PROJECT=$PROJECT,GEMINI_MODE=live,EKISPERT_MODE=live,SPEECH_MODE=mock" \
+  --set-secrets "GEMINI_API_KEY=gemini-key:latest,EKISPERT_API_KEY=ekispert-key:latest"
 ```
 
 実 API に切り替えるときは、`*_MODE` を `live` にしてシークレットを渡します。
 
 ```bash
 gcloud run services update $SERVICE --region $REGION \
-  --set-env-vars "GEMINI_MODE=live,YOUCAM_MODE=live,EKISPERT_MODE=live,GEMINI_MODEL=gemini-3.7-flash" \
-  --set-secrets "GEMINI_API_KEY=gemini-key:latest,YOUCAM_API_KEY=youcam-key:latest,YOUCAM_SECRET_KEY=youcam-secret:latest,EKISPERT_API_KEY=ekispert-key:latest"
+  --set-env-vars "GEMINI_MODE=live,EKISPERT_MODE=live,GEMINI_MODEL=gemini-3.7-flash" \
+  --set-secrets "GEMINI_API_KEY=gemini-key:latest,EKISPERT_API_KEY=ekispert-key:latest"
 ```
 
 `--allow-unauthenticated` を付けるのは、**共有リンクを受け取った家族がログインなしで開ける**ようにするためです。
@@ -240,8 +233,6 @@ open $URL                               # 画面
 
    | 名前 | 貼る値 |
    |---|---|
-   | `youcam-key` | YouCam の **API キー** |
-   | `youcam-secret` | YouCam の **シークレットキー**（別物。両方要る） |
    | `ekispert-key` | 駅すぱあと API のアクセスキー |
 
 ## 6. サービスアカウント
@@ -290,7 +281,6 @@ gcloud builds submit --config cloudbuild.yaml \
        | `GCS_BUCKET` | `omoide-kobo-family` |
        | `GOOGLE_CLOUD_PROJECT` | `omoide-kobo` |
        | `GEMINI_MODE` | `mock`（実 API を使うなら `live`） |
-       | `YOUCAM_MODE` | `mock` |
        | `EKISPERT_MODE` | `mock` |
        | `SPEECH_MODE` | `mock` |
 
@@ -299,8 +289,6 @@ gcloud builds submit --config cloudbuild.yaml \
        | シークレット | 環境変数の名前 |
        |---|---|
        | `gemini-key` | `GEMINI_API_KEY` |
-       | `youcam-key` | `YOUCAM_API_KEY`（API キー＝`client_id`） |
-       | `youcam-secret` | `YOUCAM_SECRET_KEY`（シークレットキー＝`id_token`） |
        | `ekispert-key` | `EKISPERT_API_KEY` |
    - **セキュリティ**タブ
      - **サービス アカウント** に `omoide-kobo-run@…` を選ぶ
@@ -406,7 +394,6 @@ gh variable set GCS_BUCKET --body "omoide-kobo-family"
 
 ```bash
 gh variable set GEMINI_MODE --body "live"
-gh variable set YOUCAM_MODE --body "live"
 gh variable set EKISPERT_MODE --body "live"
 ```
 

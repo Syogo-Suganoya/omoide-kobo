@@ -32,12 +32,12 @@ export function NowBar({
 
   if (photo.status === "failed") {
     body = {
-      text: "この写真は直せませんでした。別の写真で試してみてください。",
+      text: "この写真は調べられませんでした。別の写真で試してみてください。",
       action: nextPhotoLink,
     };
   } else if (photo.status !== "awaiting_family" && photo.status !== "confirmed") {
     body = {
-      text: "いま直しています。色が戻ると、場所の候補が出ます。",
+      text: "いま調べています。終わると、場所の候補が出ます。",
       action: nextPhotoLink,
     };
   } else if (!photo.confirmed.place) {

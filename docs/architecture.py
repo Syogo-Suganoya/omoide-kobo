@@ -49,11 +49,10 @@ def main() -> None:
 
         with Cluster("実行基盤 — Cloud Run", graph_attr=cluster("#f7f1e4")):
             api = Run("api\nFastAPI (Python)")
-            agent = Run("agent\nAgent Development Kit\n修復／推定／語り／旅程")
+            agent = Run("agent\nAgent Development Kit\n推定／語り／旅程")
 
         with Cluster("AI・外部 API", graph_attr=cluster()):
             gemini = AIPlatform("Gemini 3.7 Flash\n推定・語り構造化")
-            youcam = Action("YouCam API\nカラー化・修復")
             ekispert = Action("駅すぱあと API\nMCP サーバー")
             speech = SpeechToText("Speech-to-Text\n／ Text-to-Speech")
 
@@ -64,7 +63,7 @@ def main() -> None:
 
         pwa >> api
         api >> agent
-        agent >> [gemini, youcam, ekispert, speech]
+        agent >> [gemini, ekispert, speech]
         api >> [gcs, fs, log]
 
 

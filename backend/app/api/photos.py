@@ -70,9 +70,9 @@ async def get_photo(photo_id: str) -> Photo:
 
 
 @router.get("/photos/{photo_id}/image/{kind}")
-async def get_image(photo_id: str, kind: Literal["original", "restored"]) -> Response:
+async def get_image(photo_id: str, kind: Literal["original"]) -> Response:
     photo = await _load(photo_id)
-    ref = {"original": photo.original_ref, "restored": photo.restored_ref}[kind]
+    ref = photo.original_ref
     if not ref:
         raise HTTPException(404, "画像がまだありません")
     data = await anyio.to_thread.run_sync(get_blobs().read, ref)

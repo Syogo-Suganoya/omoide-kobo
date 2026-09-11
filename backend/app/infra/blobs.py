@@ -2,7 +2,7 @@
 
 参照は `family/{familyId}/{albumId}/{kind}/{name}` 形式で、必ず familyId 配下に閉じる。
 読み書きの入口はここだけにして、家族スコープ外のパスは弾く。
-オリジナルは常に別キーで保全し、修復結果で上書きしない。
+預かった写真は元のまま保管し、上書きしない。
 """
 
 from __future__ import annotations

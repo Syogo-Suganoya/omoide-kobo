@@ -6,6 +6,3 @@ google-genai==2.22.0
 google-cloud-storage==3.13.1
 google-cloud-speech==2.40.0
 google-cloud-texttospeech==2.37.0
-
-# YouCam S2S v1 の id_token 生成（client_secret を公開鍵とする RSA 暗号化）
-cryptography==50.0.1

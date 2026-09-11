@@ -13,7 +13,6 @@ services:
       APP_ENV: dev
       # mock | live  … 外部APIの実接続切替（キーが入るまでは mock）
       GEMINI_MODE: ${GEMINI_MODE:-mock}
-      YOUCAM_MODE: ${YOUCAM_MODE:-mock}
       EKISPERT_MODE: ${EKISPERT_MODE:-mock}
       SPEECH_MODE: ${SPEECH_MODE:-mock}
       # firestore（既定・下の emulator を指す） | memory（テスト用）
@@ -26,8 +25,6 @@ services:
       GCS_BUCKET: ${GCS_BUCKET:-}
       GEMINI_API_KEY: ${GEMINI_API_KEY:-}
       GEMINI_MODEL: ${GEMINI_MODEL:-gemini-3.7-flash}
-      YOUCAM_API_KEY: ${YOUCAM_API_KEY:-}
-      YOUCAM_SECRET_KEY: ${YOUCAM_SECRET_KEY:-}
       EKISPERT_API_KEY: ${EKISPERT_API_KEY:-}
       EKISPERT_MCP_URL: ${EKISPERT_MCP_URL:-https://api-mcp.ekispert.jp/mcp}
       EKISPERT_SEARCH_TYPE: ${EKISPERT_SEARCH_TYPE:-plain}

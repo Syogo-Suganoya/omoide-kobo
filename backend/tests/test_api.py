@@ -53,8 +53,8 @@ async def test_full_flow(client: AsyncClient, gray_photo: bytes) -> None:
     assert first["estimate"]["place_candidates"]
     assert first["questions"]
 
-    # 修復画像が取得できる
-    image = await client.get(f"/api/photos/{first['id']}/image/restored")
+    # 預かった写真が取得できる
+    image = await client.get(f"/api/photos/{first['id']}/image/original")
     assert image.status_code == 200 and image.content
 
     # 家族の確定
@@ -103,7 +103,7 @@ async def test_full_flow(client: AsyncClient, gray_photo: bytes) -> None:
 
     # 監査ログ
     logs = (await client.get(f"/api/families/{family['id']}/audit")).json()
-    assert {log["action"] for log in logs} >= {"upload", "restore", "estimate", "family_confirm", "trip_plan"}
+    assert {log["action"] for log in logs} >= {"upload", "estimate", "family_confirm", "trip_plan"}
 
     # 削除権
     deleted = await client.delete(f"/api/families/{family['id']}")
@@ -206,7 +206,7 @@ async def test_share_rejects_other_familys_target(client: AsyncClient) -> None:
 async def test_agents_roster(client: AsyncClient) -> None:
     body = (await client.get("/api/agents")).json()
     names = {a["name"] for a in body["roster"]}
-    assert names == {"orchestrator", "restore", "estimate", "story", "itinerary"}
+    assert names == {"orchestrator", "estimate", "story", "itinerary"}
     assert body["modes"]["gemini"] == "mock"
     assert body["policy"]
 

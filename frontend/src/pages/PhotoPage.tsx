@@ -2,7 +2,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { useParams } from "react-router-dom";
 
 import { api } from "../api";
-import { BeforeAfter, Confidence, ErrorBar, StatusChip } from "../components/bits";
+import { Confidence, ErrorBar, StatusChip } from "../components/bits";
 import { NowBar } from "../components/nowbar";
 import type { Photo } from "../types";
 
@@ -104,21 +104,11 @@ export default function PhotoPage() {
               <h2 style={{ marginBottom: 0 }}>{photo.confirmed.place ?? photo.filename}</h2>
               <StatusChip status={photo.status} />
             </div>
-            {photo.restored_ref ? (
-              <BeforeAfter
-                before={api.imageUrl(photo.id, "original")}
-                after={api.imageUrl(photo.id, "restored")}
-              />
-            ) : (
-              <div className="empty">修復中です…</div>
-            )}
-            <div className="row" style={{ marginTop: 10 }}>
-              {photo.restore_steps.map((step) => (
-                <span key={step} className="chip iro">
-                  {step}
-                </span>
-              ))}
-            </div>
+            <img
+              className="photo"
+              src={api.imageUrl(photo.id)}
+              alt={photo.confirmed.place ?? photo.filename}
+            />
           </section>
 
           {photo.estimate && (

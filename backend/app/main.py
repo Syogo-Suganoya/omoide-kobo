@@ -15,7 +15,7 @@ logging.basicConfig(level=logging.INFO, format="%(message)s")
 
 app = FastAPI(
     title="オモイデ工房 API",
-    description="思い出カラー化×巡礼旅エージェント（Cloud Run: api / agent）",
+    description="思い出の場所を見つけて巡る旅のエージェント（Cloud Run: api / agent）",
     version="0.1.0",
 )
 

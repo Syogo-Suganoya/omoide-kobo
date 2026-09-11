@@ -48,7 +48,7 @@ async def _run_ingest(family: Family, album: Album, photos: list[Photo]) -> Job:
     return result
 
 
-async def test_ingest_restores_and_proposes(gray_photo: bytes) -> None:
+async def test_ingest_proposes_without_confirming(gray_photo: bytes) -> None:
     family, album, photos = await _seed(gray_photo)
     job = await _run_ingest(family, album, photos)
 
@@ -56,11 +56,9 @@ async def test_ingest_restores_and_proposes(gray_photo: bytes) -> None:
     assert job.completed == len(photos)
 
     for photo in await repo.list_photos(album.id):
-        # 元画像は保全され、修復結果は別キー
-        assert photo.original_ref and photo.restored_ref
-        assert photo.original_ref != photo.restored_ref
+        # 預かった写真は、そのまま手を加えずに保管される
+        assert photo.original_ref
         assert get_blobs().read(photo.original_ref) == gray_photo
-        assert len(photo.restore_steps) == 3
 
         # 推定は候補・根拠・確度つき、確定はしていない
         assert photo.status is PhotoStatus.awaiting_family
@@ -184,7 +182,6 @@ async def test_audit_records_external_calls_with_policy(gray_photo: bytes) -> No
 
     logs = await repo.list_audit(family.id)
     actions = {log.action for log in logs}
-    assert AuditAction.restore in actions
     assert AuditAction.estimate in actions
     external = [log for log in logs if log.action is AuditAction.external_call]
     assert external and all(log.policy for log in external)
@@ -198,7 +195,7 @@ async def test_purge_family_removes_photos_and_blobs(gray_photo: bytes) -> None:
     removed_blobs = get_blobs().delete_prefix(f"family/{family.id}")
     removed_docs = await repo.purge_family(family.id)
 
-    assert removed_blobs >= 4  # original + restored × 2
+    assert removed_blobs >= 2  # original × 2
     assert removed_docs["photos"] == 2
     assert await repo.get_family(family.id) is None
     assert await repo.list_photos(album.id) == []
