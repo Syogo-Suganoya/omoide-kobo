@@ -37,7 +37,12 @@ for router in (
     app.include_router(router, prefix="/api")
 
 
+# Cloud Run の run.app ドメインでは、Google のエッジが「/healthz」をそのまま横取りし、
+# コンテナまで届かずに Google の 404 ページが返る（末尾にスラッシュを足すと届く）。
+# 外から叩く用に /api/healthz も生やしておく。compose のヘルスチェックは
+# localhost を直接見るのでエッジを通らず、/healthz のままで問題ない。
 @app.get("/healthz")
+@app.get("/api/healthz")
 async def healthz() -> dict[str, str]:
     settings = get_settings()
     return {"status": "ok", "env": settings.app_env, "gemini": settings.gemini_mode}

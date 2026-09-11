@@ -85,7 +85,7 @@ jobs:
       - name: 起動確認
         run: |
           for i in $(seq 1 10); do
-            if curl -sf "${{ steps.release.outputs.url }}/healthz" > /dev/null; then
+            if curl -sf "${{ steps.release.outputs.url }}/api/healthz" > /dev/null; then
               echo "起動を確認しました: ${{ steps.release.outputs.url }}"
               exit 0
             fi

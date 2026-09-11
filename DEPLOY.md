@@ -189,7 +189,7 @@ gcloud run services update $SERVICE --region $REGION \
 ```bash
 URL=$(gcloud run services describe $SERVICE --region $REGION --format='value(status.url)')
 
-curl -s $URL/healthz                    # {"status":"ok",...}
+curl -s $URL/api/healthz                # {"status":"ok",...}
 curl -s $URL/api/agents | head -c 400   # 各アダプタが mock か live か
 open $URL                               # 画面
 ```
@@ -309,7 +309,7 @@ gcloud builds submit --config cloudbuild.yaml \
 ## 9. 動いているか確かめる
 
 1. 表示された URL を開く（画面が出る）
-2. URL の末尾に `/healthz` を付けて開くと `{"status":"ok",...}` が返る
+2. URL の末尾に `/api/healthz` を付けて開くと `{"status":"ok",...}` が返る
 3. `/api/agents` で各アダプタが `mock` か `live` か確認できる
 4. うまく動かないときは Cloud Run のサービス →「ログ」タブを見る
 
