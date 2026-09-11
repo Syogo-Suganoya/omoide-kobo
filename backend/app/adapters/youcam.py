@@ -8,7 +8,9 @@ live は YouCam(Perfect Corp) S2S API を叩く。
 from __future__ import annotations
 
 import asyncio
+import base64
 import io
+import time
 from typing import Protocol
 
 import httpx
@@ -86,12 +88,27 @@ class MockYouCam:
         return _dump(img.filter(ImageFilter.UnsharpMask(radius=1.2, percent=80, threshold=4)))
 
 
-class LiveYouCam:
-    """YouCam(Perfect Corp) S2S API 実装。
+def _id_token(client_id: str, client_secret: str) -> str:
+    """S2S v1 の id_token を作る。
 
-    フロー: client/auth でアクセストークン取得 → file/photo-* でアップロード先取得 →
-    task 作成 → ポーリングで結果 URL を取得。エンドポイントは契約プランで異なるため、
-    実キー投入時に docs.perfectcorp.com と突き合わせて確認すること。
+    公式仕様: `client_id=<client_id>&timestamp=<ミリ秒>` を、X.509 形式を Base64 にした
+    client_secret（＝公開鍵）で RSA 暗号化し、その結果を Base64 にしたもの。
+    生のシークレットをそのまま渡しても 401 になる。
+    """
+    from cryptography.hazmat.primitives.asymmetric import padding
+    from cryptography.hazmat.primitives.serialization import load_der_public_key
+
+    public_key = load_der_public_key(base64.b64decode(client_secret))
+    plain = f"client_id={client_id}&timestamp={int(time.time() * 1000)}".encode()
+    return base64.b64encode(public_key.encrypt(plain, padding.PKCS1v15())).decode()
+
+
+class LiveYouCam:
+    """YouCam(Perfect Corp) S2S v1 API 実装。
+
+    フロー: client/auth でアクセストークン取得（2時間有効）→ file/{機能} でアップロード先を
+    もらって PUT → task/{機能} を作成 → ポーリングで結果 URL を取得。
+    ポーリングを 10 秒空けるとタスクが破棄されるので、返ってくる polling_interval に従う。
     """
 
     name = "youcam"
@@ -101,46 +118,67 @@ class LiveYouCam:
         settings = get_settings()
         if not settings.youcam_api_key:
             raise RuntimeError("YOUCAM_API_KEY が未設定です")
+        if not settings.youcam_secret_key:
+            raise RuntimeError("YOUCAM_SECRET_KEY が未設定です（id_token の生成に要ります）")
         self._api_key = settings.youcam_api_key
         self._secret = settings.youcam_secret_key
         self._token: str | None = None
+        # 同じ request_id は再実行されない（課金の二重取りを防ぐ仕様）。タスクごとに進める
+        self._request_id = 0
 
     async def _auth(self, client: httpx.AsyncClient) -> str:
         if self._token:
             return self._token
         res = await client.post(
             f"{self.BASE}/s2s/v1.0/client/auth",
-            json={"client_id": self._api_key, "id_token": self._secret},
+            json={"client_id": self._api_key, "id_token": _id_token(self._api_key, self._secret)},
         )
         res.raise_for_status()
         self._token = res.json()["result"]["access_token"]
         return self._token
 
-    async def _run(self, image: bytes, action: str) -> bytes:
+    async def _run(self, image: bytes, action: str, params: dict | None = None) -> bytes:
         async with httpx.AsyncClient(timeout=120) as client:
             token = await self._auth(client)
             headers = {"Authorization": f"Bearer {token}"}
 
             upload = await client.post(
-                f"{self.BASE}/s2s/v1.0/file/photo-{action}",
+                f"{self.BASE}/s2s/v1.0/file/{action}",
                 headers=headers,
                 json={"files": [{"content_type": "image/jpeg", "file_name": "src.jpg"}]},
             )
             upload.raise_for_status()
             entry = upload.json()["result"]["files"][0]
-            await client.put(entry["requests"][0]["url"], content=image)
+            request = entry["requests"][0]
+            put = await client.request(
+                request.get("method", "PUT"),
+                request["url"],
+                content=image,
+                headers=request.get("headers") or {"Content-Type": "image/jpeg"},
+            )
+            put.raise_for_status()
 
+            self._request_id += 1
+            act: dict[str, object] = {"id": 0}
+            if params:
+                act["params"] = params
             task = await client.post(
-                f"{self.BASE}/s2s/v1.0/task/photo-{action}",
+                f"{self.BASE}/s2s/v1.0/task/{action}",
                 headers=headers,
-                json={"request_id": 0, "payload": {"file_sets": {"src_ids": [entry["file_id"]]}}},
+                json={
+                    "request_id": self._request_id,
+                    "payload": {
+                        "file_sets": {"src_ids": [entry["file_id"]]},
+                        "actions": [act],
+                    },
+                },
             )
             task.raise_for_status()
             task_id = task.json()["result"]["task_id"]
 
-            for _ in range(60):
+            for _ in range(120):
                 poll = await client.get(
-                    f"{self.BASE}/s2s/v1.0/task/photo-{action}",
+                    f"{self.BASE}/s2s/v1.0/task/{action}",
                     headers=headers,
                     params={"task_id": task_id},
                 )
@@ -152,17 +190,24 @@ class LiveYouCam:
                     return out.content
                 if result["status"] == "error":
                     raise RuntimeError(f"YouCam {action} 失敗: {result}")
-                await asyncio.sleep(2)
+                # 10 秒空けるとタスクが捨てられる。サーバーの指示に従い、上限も 5 秒に抑える
+                await asyncio.sleep(min(result.get("polling_interval", 500) / 1000, 5))
             raise TimeoutError(f"YouCam {action} がタイムアウトしました")
 
     async def colorize(self, image: bytes) -> bytes:
         return await self._run(image, "colorize")
 
     async def enhance(self, image: bytes) -> bytes:
-        return await self._run(image, "enhance")
+        # scale は拡大率。元の大きさのまま精細化したいので 1
+        return await self._run(image, "enhance", {"scale": 1})
 
     async def remove_defects(self, image: bytes) -> bytes:
-        return await self._run(image, "object-removal")
+        """YouCam に折れ跡・粒状ノイズ向けの機能が無いので、ここだけローカルで処理する。
+
+        obj-removal は消したい範囲のマスクを渡す機能で、用途が違う。
+        この後段の enhance（ノイズ除去を含む）と colorize が API 側の仕事。
+        """
+        return await MockYouCam().remove_defects(image)
 
 
 def get_restorer() -> RestorePort:

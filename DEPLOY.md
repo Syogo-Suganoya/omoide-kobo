@@ -15,7 +15,7 @@ main への push で自動デプロイする **GitHub Actions（CD）** も用�
 | Artifact Registry | コンテナイメージの置き場 |
 | Cloud Storage バケット | 写真・音声（家族限定・公開しない） |
 | Firestore | アルバム・写真のメタ情報・物語・旅程・共有リンク・監査ログ |
-| Secret Manager | Gemini / YouCam の API キー |
+| Secret Manager | Gemini / YouCam / 駅すぱあと のキー（YouCam だけ API キーとシークレットキーの2つ） |
 | サービスアカウント | Cloud Run が上記にアクセスするための身元 |
 
 以下の値で書いてあります。プロジェクトを別名で作った場合は読み替えてください。
@@ -66,7 +66,7 @@ export PROJECT=omoide-kobo
 export REGION=asia-northeast1
 export SERVICE=omoide-kobo
 export BUCKET=$PROJECT-family
-export REPO=omoide
+export REPO=omoide-kobo
 
 gcloud config set project "$PROJECT"
 
@@ -101,7 +101,9 @@ gcloud firestore databases create --location=$REGION
 
 ```bash
 printf '%s' 'YOUR_GEMINI_KEY' | gcloud secrets create gemini-key --data-file=-
-printf '%s' 'YOUR_YOUCAM_KEY' | gcloud secrets create youcam-key --data-file=-
+# YouCam は2つ要る（API キー＝client_id、シークレットキー＝id_token）
+printf '%s' 'YOUR_YOUCAM_API_KEY' | gcloud secrets create youcam-key --data-file=-
+printf '%s' 'YOUR_YOUCAM_SECRET_KEY' | gcloud secrets create youcam-secret --data-file=-
 printf '%s' 'YOUR_EKISPERT_KEY' | gcloud secrets create ekispert-key --data-file=-
 ```
 
@@ -127,6 +129,8 @@ gcloud storage buckets add-iam-policy-binding gs://$BUCKET \
 gcloud secrets add-iam-policy-binding gemini-key \
   --member="serviceAccount:$SA" --role="roles/secretmanager.secretAccessor"
 gcloud secrets add-iam-policy-binding youcam-key \
+  --member="serviceAccount:$SA" --role="roles/secretmanager.secretAccessor"
+gcloud secrets add-iam-policy-binding youcam-secret \
   --member="serviceAccount:$SA" --role="roles/secretmanager.secretAccessor"
 gcloud secrets add-iam-policy-binding ekispert-key \
   --member="serviceAccount:$SA" --role="roles/secretmanager.secretAccessor"
@@ -165,7 +169,8 @@ gcloud run deploy $SERVICE \
   --no-cpu-throttling \
   --memory 1Gi \
   --timeout 600 \
-  --set-env-vars "DB_DRIVER=firestore,STORAGE_DRIVER=gcs,GCS_BUCKET=$BUCKET,GOOGLE_CLOUD_PROJECT=$PROJECT,GEMINI_MODE=mock,YOUCAM_MODE=mock,EKISPERT_MODE=mock,SPEECH_MODE=mock"
+  --set-env-vars "DB_DRIVER=firestore,STORAGE_DRIVER=gcs,GCS_BUCKET=$BUCKET,GOOGLE_CLOUD_PROJECT=$PROJECT,GEMINI_MODE=live,YOUCAM_MODE=live,EKISPERT_MODE=live,SPEECH_MODE=mock" \
+  --set-secrets "GEMINI_API_KEY=gemini-key:latest,YOUCAM_API_KEY=youcam-key:latest,YOUCAM_SECRET_KEY=youcam-secret:latest,EKISPERT_API_KEY=ekispert-key:latest"
 ```
 
 実 API に切り替えるときは、`*_MODE` を `live` にしてシークレットを渡します。
@@ -173,7 +178,7 @@ gcloud run deploy $SERVICE \
 ```bash
 gcloud run services update $SERVICE --region $REGION \
   --set-env-vars "GEMINI_MODE=live,YOUCAM_MODE=live,EKISPERT_MODE=live,GEMINI_MODEL=gemini-3.7-flash" \
-  --set-secrets "GEMINI_API_KEY=gemini-key:latest,YOUCAM_API_KEY=youcam-key:latest,EKISPERT_API_KEY=ekispert-key:latest"
+  --set-secrets "GEMINI_API_KEY=gemini-key:latest,YOUCAM_API_KEY=youcam-key:latest,YOUCAM_SECRET_KEY=youcam-secret:latest,EKISPERT_API_KEY=ekispert-key:latest"
 ```
 
 `--allow-unauthenticated` を付けるのは、**共有リンクを受け取った家族がログインなしで開ける**ようにするためです。
@@ -210,7 +215,7 @@ open $URL                               # 画面
 ## 2. Artifact Registry（イメージの置き場）
 
 1. 検索窓で「Artifact Registry」→「リポジトリを作成」
-2. 名前 `omoide` / 形式 **Docker** / ロケーションタイプ **リージョン** / `asia-northeast1`
+2. 名前 `omoide-kobo` / 形式 **Docker** / ロケーションタイプ **リージョン** / `asia-northeast1`
 3. 「作成」
 
 ## 3. Cloud Storage（写真の置き場）
@@ -231,7 +236,13 @@ open $URL                               # 画面
 
 1. 検索窓で「Secret Manager」→「シークレットを作成」
 2. 名前 `gemini-key`、値に API キーを貼り「シークレットを作成」
-3. 同じ手順で `youcam-key` も作る
+3. 同じ手順で、使うぶんだけ作る
+
+   | 名前 | 貼る値 |
+   |---|---|
+   | `youcam-key` | YouCam の **API キー** |
+   | `youcam-secret` | YouCam の **シークレットキー**（別物。両方要る） |
+   | `ekispert-key` | 駅すぱあと API のアクセスキー |
 
 ## 6. サービスアカウント
 
@@ -283,8 +294,14 @@ gcloud builds submit --config cloudbuild.yaml \
        | `EKISPERT_MODE` | `mock` |
        | `SPEECH_MODE` | `mock` |
 
-     - live にする場合は「シークレットの参照」から `gemini-key` / `youcam-key` / `ekispert-key` を選び、
-       **環境変数として公開**、名前を `GEMINI_API_KEY` / `YOUCAM_API_KEY` / `EKISPERT_API_KEY`、バージョンは `latest`
+     - live にする場合は「シークレットの参照」から下記を**環境変数として公開**で追加（バージョンは `latest`）
+
+       | シークレット | 環境変数の名前 |
+       |---|---|
+       | `gemini-key` | `GEMINI_API_KEY` |
+       | `youcam-key` | `YOUCAM_API_KEY`（API キー＝`client_id`） |
+       | `youcam-secret` | `YOUCAM_SECRET_KEY`（シークレットキー＝`id_token`） |
+       | `ekispert-key` | `EKISPERT_API_KEY` |
    - **セキュリティ**タブ
      - **サービス アカウント** に `omoide-kobo-run@…` を選ぶ
 6. 「作成」を押す。1〜2分で URL が表示されます
@@ -367,15 +384,45 @@ echo "WIF_PROVIDER=projects/$PROJECT_NUMBER/locations/global/workloadIdentityPoo
 | `GCS_BUCKET` | `omoide-kobo-family` |
 | `GEMINI_MODE` ほか | 省略可（未設定なら `mock`）。実 API を使うなら `live` |
 
+### gh コマンドで入れる
+
+画面を開かずに済ませるならこちら。`gh auth login` 済みで、リポジトリの中で実行してください。
+
+```bash
+gh variable set WIF_PROVIDER --body "projects/114688237019/locations/global/workloadIdentityPools/github/providers/github"
+gh variable set DEPLOY_SERVICE_ACCOUNT --body "omoide-kobo-deployer@omoide-kobo.iam.gserviceaccount.com"
+gh variable set RUNTIME_SERVICE_ACCOUNT --body "omoide-kobo-run@omoide-kobo.iam.gserviceaccount.com"
+gh variable set GCS_BUCKET --body "omoide-kobo-family"
+```
+
+実 API を使うなら、使うものだけ `live` にします（未設定なら `mock`）。
+
+```bash
+gh variable set GEMINI_MODE --body "live"
+gh variable set YOUCAM_MODE --body "live"
+gh variable set EKISPERT_MODE --body "live"
+```
+
+入った値の確認と、消すとき。
+
+```bash
+gh variable list
+gh variable delete GEMINI_MODE
+```
+
+**`gh secret` ではなく `gh variable` です。** ここに入れるのは秘密ではありません
+（鍵は Secret Manager にあり、Cloud Run が直接読みます）。`gh secret` に入れるとログでマスクされ、
+デプロイが失敗したときに値の取り違えを目視で追えなくなります。
+
 ## 3. CD を有効にする
 
 **変数 `ENABLE_CD` を `true` にした時点で、main への push が本番へ出ます。** それまでは無効です。
 
-| やりたいこと | 操作 |
-|---|---|
-| 自動デプロイを有効にする | Variables に `ENABLE_CD` = `true` を追加 |
-| 一時的に止める | `ENABLE_CD` を `false` にする（削除でも可） |
-| 有効にせず1回だけ流す | Actions タブ →「Cloud Run へデプロイ」→ Run workflow → **confirm にチェック** |
+| やりたいこと | 操作 | gh |
+|---|---|---|
+| 自動デプロイを有効にする | Variables に `ENABLE_CD` = `true` を追加 | `gh variable set ENABLE_CD --body "true"` |
+| 一時的に止める | `ENABLE_CD` を `false` にする（削除でも可） | `gh variable set ENABLE_CD --body "false"` |
+| 有効にせず1回だけ流す | Actions タブ →「Cloud Run へデプロイ」→ Run workflow → **confirm にチェック** | `gh workflow run deploy.yml -f confirm=true` |
 
 `backend/` `frontend/` `Dockerfile.deploy` `cloudbuild.yaml` のいずれかが変わった push でだけ走ります。
 ドキュメントだけの変更では動きません。

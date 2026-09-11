@@ -224,6 +224,35 @@ OpenAPI は http://localhost:8080/docs にあります。
 - **駅すぱあと** — 徒歩→特急→乗換→在来線→徒歩 の区間列を生成（休憩の挿入と体力配慮は本実装側のロジック）
 - **Speech-to-Text** — 語りのサンプル書き起こしを返す
 
+## YouCam(Perfect Corp) API
+
+`YOUCAM_MODE=live` のとき S2S **v1** を使います（`https://yce-api-01.perfectcorp.com`）。
+認証は素直な Bearer ではなく、**シークレットキーを公開鍵として使う RSA 暗号化**を挟みます。
+
+1. `client_id=<APIキー>&timestamp=<ミリ秒>` を組み立てる
+2. シークレットキー（X.509 を Base64 にした RSA 公開鍵）で暗号化し、Base64 にして `id_token` にする
+3. `POST /s2s/v1.0/client/auth` に `client_id` と `id_token` を投げ、2時間有効の access_token を得る
+4. 以降は `file/{機能}` → PUT で実体をアップロード → `task/{機能}` → ポーリング
+
+**シークレットキーをそのまま `id_token` に入れると 401 になります**（最初そう書いていて弾かれました）。
+
+- 機能名は `colorize` と `enhance`。`enhance` は `params.scale`（1 / 2 / 4）が要る
+- `request_id` は毎回インクリメントする。同じ値だとサーバーが再実行せず、結果も返らない
+- **ポーリングを10秒空けるとタスクが破棄される**ので、応答の `polling_interval` に従う
+- 折れ跡・粒状ノイズの除去に当たる機能は YouCam に無い（`obj-removal` はマスクを渡して消す別物）。
+  `remove_defects` だけはローカルの Pillow 処理のままにしてある
+
+疎通確認は次のとおり。引数なしなら認証だけ、`colorize` を付けると画像1枚を通します（**ユニットを消費します**）。
+
+```bash
+docker compose run --rm api python -m scripts.check_youcam
+docker compose run --rm api python -m scripts.check_youcam colorize
+```
+
+**実キーで疎通確認済みです**（認証・colorize・enhance・取り込みパイプライン全体）。
+401 `Invalid client_id or invalid id_token or key expired` が出るときは、まずコンソールで
+キーの有効期限・アクティベート状態・ユニット残を確認してください。
+
 ## 駅すぱあと API MCP サーバー
 
 `EKISPERT_MODE=live` のとき、[公式の MCP サーバー](https://github.com/ValLaboratory/ekispert-api-mcp-server-docs)
