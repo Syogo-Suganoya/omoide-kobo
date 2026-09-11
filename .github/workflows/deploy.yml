@@ -25,7 +25,7 @@ env:
   PROJECT_ID: omoide-kobo
   REGION: asia-northeast1
   SERVICE: omoide-kobo
-  REPO: omoide
+  REPO: omoide-kobo
 
 jobs:
   # 壊れたものを出さないための門。テストが落ちたらデプロイに進まない。

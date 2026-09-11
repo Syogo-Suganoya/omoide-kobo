@@ -363,6 +363,13 @@ done
 gcloud iam service-accounts add-iam-policy-binding omoide-kobo-run@$PROJECT.iam.gserviceaccount.com \
   --member="serviceAccount:$DEPLOYER" --role="roles/iam.serviceAccountUser"
 
+# ビルドを実行するSA（既定は Compute Engine のもの）としても振る舞えるようにする。
+# これが無いと gcloud builds submit が PERMISSION_DENIED「caller does not have permission
+# to act as service account」で落ちる（Cloud Run への権限とは別物）
+gcloud iam service-accounts add-iam-policy-binding \
+  $PROJECT_NUMBER-compute@developer.gserviceaccount.com \
+  --member="serviceAccount:$DEPLOYER" --role="roles/iam.serviceAccountUser"
+
 # GitHub の当該リポジトリからだけ、このSAを使えるようにする
 gcloud iam service-accounts add-iam-policy-binding $DEPLOYER \
   --role="roles/iam.workloadIdentityUser" \
@@ -432,6 +439,28 @@ gh variable delete GEMINI_MODE
 - **テストで止まった** — 本番には出ていません。ローカルで `docker compose run --rm api pytest` を通してから push
 - **リリース後の起動確認で落ちた** — 新しいリビジョンは配信されているので、[元に戻す](#元に戻す)でひとつ前へ戻す
 - **認証で落ちた** — `WIF_PROVIDER` と `DEPLOY_SERVICE_ACCOUNT` の綴り、`--attribute-condition` のリポジトリ名を確認
+- **ビルドで `PERMISSION_DENIED: caller does not have permission to act as service account`** —
+  デプロイ用SAに、ビルド実行SAへの `roles/iam.serviceAccountUser` が無い。エラーに出た数字は
+  サービスアカウントの `uniqueId` なので、次で実体を突き止めてから付与する
+
+  ```bash
+  BUILD_SA=$(gcloud iam service-accounts list --project $PROJECT \
+    --filter="uniqueId=<エラーに出た数字>" --format='value(email)')
+  echo "$BUILD_SA"
+
+  gcloud iam service-accounts add-iam-policy-binding "$BUILD_SA" \
+    --member="serviceAccount:$DEPLOYER" --role="roles/iam.serviceAccountUser"
+  ```
+
+- **ビルド実行SA自身の権限が足りない** — 続けて `artifactregistry.writer` と `logging.logWriter` が要る
+  （`cloudbuild.yaml` は `CLOUD_LOGGING_ONLY` なので、ログ書き込み権限が無いとビルドが開始できない）
+
+  ```bash
+  for role in roles/artifactregistry.writer roles/logging.logWriter; do
+    gcloud projects add-iam-policy-binding $PROJECT \
+      --member="serviceAccount:$BUILD_SA" --role="$role"
+  done
+  ```
 
 ---
 
