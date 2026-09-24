@@ -1,4 +1,4 @@
-"""推定・語り構造化を担う LLM ポート（Gemini）。
+"""場所・年代の推定を担う LLM ポート（Gemini）。
 
 live モードは google-genai を使い、mock モードは決定的なフィクスチャを返す。
 どちらも「候補・根拠・確度」を必ず返す契約にしてあり、確定は行わない（設計書 7-2）。
@@ -8,7 +8,6 @@ from __future__ import annotations
 
 import hashlib
 import json
-import re
 from dataclasses import dataclass, field
 from typing import Any, Protocol
 
@@ -16,11 +15,8 @@ from app.config import get_settings
 from app.models import (
     EraEstimate,
     Estimate,
-    EventMention,
     FamilyQuestion,
-    PersonMention,
     PlaceCandidate,
-    Story,
 )
 
 
@@ -39,8 +35,6 @@ class LlmPort(Protocol):
     async def estimate_photo(self, image: bytes, filename: str, ctx: EstimateContext) -> Estimate: ...
 
     async def generate_questions(self, estimate: Estimate) -> list[FamilyQuestion]: ...
-
-    async def structure_story(self, transcript: str, place: str | None) -> Story: ...
 
     async def spot_status(self, place: str) -> dict[str, Any]: ...
 
@@ -253,18 +247,6 @@ class MockGemini:
             )
         return questions
 
-    async def structure_story(self, transcript: str, place: str | None) -> Story:
-        text = transcript.strip()
-        sentences = [s for s in re.split(r"[。\n]", text) if s.strip()]
-        people = [
-            PersonMention(label=m, note="語りに登場（家族の確定待ち）")
-            for m in dict.fromkeys(re.findall(r"(祖母|祖父|母|父|兄|姉|弟|妹|叔父|叔母|近所の[^\s、。]+)", text))
-        ]
-        events = [EventMention(summary=s.strip(), when_hint=None) for s in sentences[:3]]
-        head = sentences[0].strip() if sentences else "語りの記録"
-        summary = f"{place or '撮影地'}での思い出。{head}。"
-        return Story(transcript=text, summary=summary, people=people, events=events)
-
     async def spot_status(self, place: str) -> dict[str, Any]:
         for key, value in _SPOT_STATUS.items():
             if key in place:
@@ -339,21 +321,6 @@ class LiveGemini:
         )
         data = await self._json([prompt])
         return [FamilyQuestion(**q) for q in data.get("questions", [])]
-
-    async def structure_story(self, transcript: str, place: str | None) -> Story:
-        prompt = (
-            "家族の語りの書き起こしを構造化してください。"
-            "人物と出来事は「語りに現れた候補」として抽出し、関係の断定はしないでください。\n"
-            f"撮影地: {place or '不明'}\n書き起こし: {transcript}\n"
-            '出力: {"summary":"","people":[{"label":"","note":""}],"events":[{"summary":"","when_hint":""}]}'
-        )
-        data = await self._json([prompt])
-        return Story(
-            transcript=transcript,
-            summary=data.get("summary"),
-            people=[PersonMention(**p) for p in data.get("people", [])],
-            events=[EventMention(**e) for e in data.get("events", [])],
-        )
 
     async def spot_status(self, place: str) -> dict[str, Any]:
         prompt = (

@@ -1,4 +1,23 @@
-import type { Job, PhotoStatus } from "../types";
+import type { Job, Photo, PhotoStatus } from "../types";
+
+/**
+ * 写真につける場所の名前。
+ *
+ * 家族が確定した名前と、AI がまだ確かめていない候補を、同じ顔で出さない。
+ * 候補は括弧でくくって「候補」と添え、断定に見えないようにする（設計書 7-2）。
+ */
+export function PlaceLabel({ photo }: { photo: Photo }) {
+  if (photo.confirmed.place) return <>{photo.confirmed.place}</>;
+
+  const top = photo.estimate?.place_candidates[0];
+  if (!top) return <span className="guess">{photo.filename}</span>;
+
+  return (
+    <span className="guess">
+      「{top.name}」かも <small>候補</small>
+    </span>
+  );
+}
 
 export function Confidence({ value, label }: { value: number; label?: string }) {
   return (

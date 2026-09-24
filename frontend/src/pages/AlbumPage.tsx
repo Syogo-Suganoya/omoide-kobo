@@ -2,7 +2,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { Link, useParams } from "react-router-dom";
 
 import { api } from "../api";
-import { ErrorBar, JobChip, StatusChip } from "../components/bits";
+import { ErrorBar, JobChip, PlaceLabel, StatusChip } from "../components/bits";
 import type { Album, Job, Photo } from "../types";
 
 export default function AlbumPage() {
@@ -130,17 +130,17 @@ export default function AlbumPage() {
       <section className="block">
         <h2>写真</h2>
         {/* いまの中身に合わせて言うことを変える。無い札を探させない */}
+        {photos.length > 0 && (
         <p className="lead">
-          {photos.length === 0
-            ? "上の枠に写真を入れると、ここに並びます。"
-            : awaiting.length > 0
+          {awaiting.length > 0
               ? `「家族の確認待ち」の札がついた${awaiting.length}枚から開くと、場所を決める作業に進めます。`
               : working.length > 0
                 ? "調べているあいだ、ここに進み具合が出ます。終わると「家族の確認待ち」の札がつきます。"
-                : "この中の場所はすべて確定しました。写真を開くと、語りを残したり、旅程に入れたりできます。"}
+              : "この中の場所はすべて確定しました。旅程に入れられます。"}
         </p>
+        )}
         {photos.length === 0 ? (
-          <div className="empty">まだ写真がありません。</div>
+          <div className="empty">上の枠に写真を入れると、ここに並びます。</div>
         ) : (
           <div className="grid">
             {photos.map((photo, i) => (
@@ -157,9 +157,7 @@ export default function AlbumPage() {
                   <StatusChip status={photo.status} />
                 </span>
                 <span className="cap">
-                  {photo.confirmed.place ??
-                    photo.estimate?.place_candidates[0]?.name ??
-                    photo.filename}
+                  <PlaceLabel photo={photo} />
                 </span>
               </Link>
             ))}

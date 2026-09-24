@@ -63,17 +63,6 @@ export function buildTodos(
     });
   }
 
-  const noStory = photos.filter((p) => p.confirmed.place && !p.story);
-  if (noStory.length > 0) {
-    todos.push({
-      phase: "確かめる",
-      title: `${noStory.length}枚に語りを残す`,
-      detail: "写真を見ながらの会話を録音すると、人物や出来事が写真に結びついて残ります。",
-      to: `/photos/${noStory[0].id}`,
-      cta: "語りを残す",
-    });
-  }
-
   const places = photos.filter((p) => p.confirmed.place);
   if (places.length >= 2 && trips.length === 0) {
     todos.push({

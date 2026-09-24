@@ -1,9 +1,42 @@
 import { useCallback, useEffect, useState } from "react";
 
 import { api } from "../api";
+import { copyText } from "../clipboard";
 import { ErrorBar } from "../components/bits";
 import { useFamily } from "../family";
 import type { Album, ShareLink } from "../types";
+
+const shareUrl = (token: string) => `${location.origin}/s/${token}`;
+
+/**
+ * 共有リンクの一行。
+ * コピーできない環境（https でない・権限が下りない）があるので、
+ * 押した結果を必ず言い、URL 自体もその場で選べるように出しておく。
+ */
+function CopyLink({ token }: { token: string }) {
+  const [state, setState] = useState<"idle" | "copied" | "failed">("idle");
+  const url = shareUrl(token);
+
+  return (
+    <div className="linkbox">
+      <input className="mono" readOnly value={url} onFocus={(e) => e.target.select()} />
+      <button
+        className="btn small"
+        onClick={async () => {
+          setState((await copyText(url)) ? "copied" : "failed");
+        }}
+      >
+        コピー
+      </button>
+      {state === "copied" && <span className="chip iro">コピーしました</span>}
+      {state === "failed" && (
+        <span style={{ color: "var(--aka)", fontSize: "0.78rem" }}>
+          この画面ではコピーできません。上の URL を選んで写してください
+        </span>
+      )}
+    </div>
+  );
+}
 
 export default function SharePage() {
   const { family, refresh } = useFamily();
@@ -14,6 +47,7 @@ export default function SharePage() {
   const [shareTarget, setShareTarget] = useState("");
   const [shareDays, setShareDays] = useState(7);
   const [confirmText, setConfirmText] = useState("");
+  const [fresh, setFresh] = useState<string | null>(null);  // いま作ったリンクの token
   const [message, setMessage] = useState<string | null>(null);
   const [error, setError] = useState<unknown>(null);
 
@@ -60,7 +94,7 @@ export default function SharePage() {
             まだ誰も招いていません。下に名前と続柄を入れて招くと、ここに並びます。
           </div>
         ) : (
-        <table>
+        <table className="stacked">
           <thead>
             <tr>
               <th>名前</th>
@@ -72,8 +106,8 @@ export default function SharePage() {
           <tbody>
             {family.members.map((m) => (
               <tr key={m.uid}>
-                <td style={{ color: "var(--ink)" }}>{m.name}</td>
-                <td>{m.relation}</td>
+                <td data-label="名前" style={{ color: "var(--ink)" }}>{m.name}</td>
+                <td data-label="続柄">{m.relation}</td>
                 <td>
                   <span className={`chip ${m.invite_status === "joined" ? "iro" : "muted"}`}>
                     {m.invite_status === "joined"
@@ -151,7 +185,7 @@ export default function SharePage() {
         <h2>共有リンク</h2>
         <p className="lead">
           期限つきの閲覧リンクを作り、家族が普段使っている連絡手段で渡します。
-          リンクを開いた人に見えるのは、家族が確定した場所と語りの要約だけです。いつでも止められます。
+          リンクを開いた人に見えるのは、写真と家族が確定した場所・年代だけです。いつでも止められます。
         </p>
         <div className="card">
           <div className="row">
@@ -188,10 +222,9 @@ export default function SharePage() {
                   created_by: "owner",
                   days: shareDays,
                 });
-                const url = `${location.origin}${created.path}`;
-                await navigator.clipboard?.writeText(url).catch(() => undefined);
-                setMessage(`共有リンクを作り、コピーしました: ${url}`);
-              }, "共有リンクを作りました")
+                // 作った直後のリンクを下の表で目立たせる。コピーはそこで行う
+                setFresh(created.link.token);
+              }, "共有リンクを作りました。下の表からコピーして渡してください。")
             }
           >
             リンクを作る
@@ -205,7 +238,7 @@ export default function SharePage() {
         </div>
 
         {shares.length > 0 && (
-          <table style={{ marginTop: 14 }}>
+          <table className="stacked" style={{ marginTop: 14 }}>
             <thead>
               <tr>
                 <th>リンク</th>
@@ -220,10 +253,16 @@ export default function SharePage() {
                 const expired = new Date(link.expires_at) < new Date();
                 const dead = link.revoked || expired;
                 return (
-                  <tr key={link.id}>
-                    <td className="mono">/s/{link.token.slice(0, 8)}…</td>
-                    <td>{new Date(link.expires_at).toLocaleDateString("ja-JP")}</td>
-                    <td>{link.view_count}回</td>
+                  <tr key={link.id} className={link.token === fresh ? "fresh" : undefined}>
+                    <td data-label="リンク">
+                      {dead ? (
+                        <span className="mono">/s/{link.token.slice(0, 8)}…</span>
+                      ) : (
+                        <CopyLink token={link.token} />
+                      )}
+                    </td>
+                    <td data-label="期限">{new Date(link.expires_at).toLocaleDateString("ja-JP")}</td>
+                    <td data-label="閲覧">{link.view_count}回</td>
                     <td>
                       <span className={`chip ${dead ? "muted" : "iro"}`}>
                         {link.revoked ? "停止済" : expired ? "期限切れ" : "有効"}
@@ -255,7 +294,7 @@ export default function SharePage() {
             <span className="chip aka">取り消せません</span>
           </summary>
           <p className="lead">
-            この家族の写真・語り・旅程をすべて消します。取り消せません。実行した事実だけが証跡として残ります。
+            この家族の写真・旅程をすべて消します。取り消せません。実行した事実だけが証跡として残ります。
           </p>
           <div className="row">
             <input

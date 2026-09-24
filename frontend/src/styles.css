@@ -412,6 +412,22 @@ p.lead {
   background: var(--kraft);
 }
 
+/* まだ家族が確かめていない名前。確定した名前と同じ顔にしない */
+.guess {
+  color: var(--sub);
+  font-style: italic;
+}
+
+.guess small {
+  font-style: normal;
+  font-size: 0.68rem;
+  border: 1px solid var(--line);
+  border-radius: 2px;
+  padding: 0 4px;
+  margin-left: 4px;
+  vertical-align: 1px;
+}
+
 .polaroid .cap {
   position: absolute;
   left: 10px;
@@ -719,6 +735,71 @@ td {
   word-break: break-all;
 }
 
+/* 共有リンクの行。URL は必ず目に見える形で置き、手で選んでも渡せるようにする */
+.linkbox {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  align-items: center;
+}
+
+.linkbox input {
+  flex: 1;
+  min-width: 190px;
+  margin: 0;
+  padding: 6px 8px;
+  background: var(--paper);
+}
+
+tr.fresh td {
+  background: #fdf6e6;
+}
+
+/*
+ * 5列の表はスマホに収まらず、横スクロールに逃がすとコピーのボタンが画面の外に出る。
+ * 640px 以下では1行を1枚のカードに畳み、見出しは各セルの肩に出す。
+ */
+@media (max-width: 640px) {
+  .stacked thead {
+    display: none;
+  }
+
+  .stacked,
+  .stacked tbody,
+  .stacked tr,
+  .stacked td {
+    display: block;
+    width: 100%;
+  }
+
+  .stacked tr {
+    border: 1px solid var(--line);
+    margin-bottom: 10px;
+    padding: 4px 0;
+  }
+
+  .stacked td {
+    border: 0;
+    padding: 5px 11px;
+  }
+
+  .stacked td[data-label]::before {
+    content: attr(data-label);
+    display: block;
+    color: var(--brown);
+    font-size: 0.72rem;
+    margin-bottom: 2px;
+  }
+
+  .stacked td:empty {
+    display: none;
+  }
+
+  .linkbox input {
+    min-width: 0;
+  }
+}
+
 /* ---------------------------------------------------------------- その他 */
 
 .dropzone {
@@ -1019,6 +1100,11 @@ footer.foot {
 }
 
 /* スクリーンショットは写真と同じく紙に貼った見せ方にする */
+/*
+ * 写しを入れる枠。大きさは画面ごとに変えない。
+ * 画面によって縦の長さが違うので、成り行きに任せると送るたびに枠が伸び縮みして、
+ * 下の説明文やボタンの位置がずれる。**入りきらない分は下を切る**。
+ */
 .guide .shot {
   background: var(--paper);
   border: 1px solid var(--line);
@@ -1026,8 +1112,19 @@ footer.foot {
   box-shadow: 2px 3px 0 var(--kraft);
 }
 
+/* 中身を入れる窓。ここが大きさを決める */
+.guide .shot .win {
+  aspect-ratio: 16 / 10;
+  overflow: hidden;
+  /* 窓より横長の写しは下が余る。枠と同じ色にして余白だと分からないようにする */
+  background: var(--paper);
+}
+
 .guide .shot img {
+  /* 横は必ず全部見せ、縦は入るところまで。
+     object-fit: cover にすると横長の写しが左右で切れて、左の列が消える。 */
   width: 100%;
+  height: auto;
   display: block;
 }
 

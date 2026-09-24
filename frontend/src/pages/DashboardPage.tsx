@@ -46,7 +46,7 @@ function Onboarding({ onDone }: { onDone: (albumId: string) => void }) {
         </button>
       </div>
       <p style={{ color: "var(--sub)", fontSize: "0.82rem", marginTop: 12 }}>
-        写真も語りも旅程も、あなたの家族の中だけで共有されます。
+        写真も旅程も、あなたの家族の中だけで共有されます。
         いまは「わたしの家族」という名前にしておきます。共有リンクを渡した相手に見える名前なので、
         気になったらこの画面でいつでも変えられます。
       </p>
@@ -225,6 +225,30 @@ export default function DashboardPage() {
           </button>
         </div>
       </section>
+
+      {/* 作った旅程が旅の画面にしか無いと、戻ってきたときに見つからない */}
+      {trips.length > 0 && (
+        <section className="block">
+          <h2>組んだ旅程</h2>
+          <div className="grid">
+            {trips.map((trip, i) => (
+              <Link key={trip.id} to="/trip" className={`card ${i % 2 ? "tilt-b" : "tilt-a"}`}>
+                <h3>{trip.title}</h3>
+                <p style={{ color: "var(--sub)", fontSize: "0.8rem" }}>
+                  {trip.date
+                    ? new Date(`${trip.date}T00:00:00`).toLocaleDateString("ja-JP", {
+                        month: "long",
+                        day: "numeric",
+                        weekday: "short",
+                      })
+                    : "日付は未定"}
+                  ／{trip.origin} 発／{trip.spots.length}か所
+                </p>
+              </Link>
+            ))}
+          </div>
+        </section>
+      )}
     </>
   );
 }

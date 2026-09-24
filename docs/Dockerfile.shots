@@ -1,0 +1,7 @@
+# 案内ページに載せる画面の写しを撮るためだけのコンテナ。
+# 起動中の web にブラウザで繋ぎ、利用者と同じ順に操作して撮る。
+FROM zenika/alpine-chrome:with-puppeteer
+
+USER root
+# 日本語のフォントが無いと全部豆腐になる。
+RUN apk add --no-cache font-noto-cjk

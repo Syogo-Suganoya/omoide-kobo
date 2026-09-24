@@ -8,7 +8,7 @@
 from diagrams import Cluster, Diagram, Edge
 from diagrams.gcp.compute import Run
 from diagrams.gcp.database import Firestore
-from diagrams.gcp.ml import AIPlatform, SpeechToText
+from diagrams.gcp.ml import AIPlatform
 from diagrams.gcp.operations import Logging
 from diagrams.gcp.storage import Storage
 from diagrams.generic.device import Mobile
@@ -49,21 +49,20 @@ def main() -> None:
 
         with Cluster("実行基盤 — Cloud Run", graph_attr=cluster("#f7f1e4")):
             api = Run("api\nFastAPI (Python)")
-            agent = Run("agent\nAgent Development Kit\n推定／語り／旅程")
+            agent = Run("agent\nAgent Development Kit\n推定／旅程")
 
         with Cluster("AI・外部 API", graph_attr=cluster()):
-            gemini = AIPlatform("Gemini 3.7 Flash\n推定・語り構造化")
+            gemini = AIPlatform("Gemini 3.7 Flash\n場所・年代の推定")
             ekispert = Action("駅すぱあと API\nMCP サーバー")
-            speech = SpeechToText("Speech-to-Text\n／ Text-to-Speech")
 
         with Cluster("データ", graph_attr=cluster()):
             gcs = Storage("Cloud Storage\n家族限定・非学習領域")
-            fs = Firestore("Firestore\nアルバム・物語・旅程")
+            fs = Firestore("Firestore\nアルバム・写真・旅程")
             log = Logging("Cloud Logging\n監査ログ")
 
         pwa >> api
         api >> agent
-        agent >> [gemini, ekispert, speech]
+        agent >> [gemini, ekispert]
         api >> [gcs, fs, log]
 
 

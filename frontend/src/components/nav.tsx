@@ -1,4 +1,4 @@
-import { NavLink } from "react-router-dom";
+import { NavLink, useLocation } from "react-router-dom";
 
 /**
  * 上部のメニュー。
@@ -40,6 +40,9 @@ const ITEMS = [
     icon: <IconPhoto />,
     label: "写真を調べる",
     hint: "アルバムと、次にやること",
+    // アルバムと写真は「写真を調べる」から入った作業の続き。
+    // 深く入っても現在地を見失わないよう、ここの配下として扱う。
+    owns: ["/albums", "/photos"],
   },
   {
     to: "/trip",
@@ -56,10 +59,18 @@ const ITEMS = [
 ];
 
 export function MainNav() {
+  const { pathname } = useLocation();
+
   return (
     <nav className="mainnav" aria-label="やることメニュー">
       {ITEMS.map((item) => (
-        <NavLink key={item.to} to={item.to} className="tab">
+        <NavLink
+          key={item.to}
+          to={item.to}
+          className={({ isActive }) =>
+            isActive || item.owns?.some((base) => pathname.startsWith(base)) ? "tab active" : "tab"
+          }
+        >
           <span className="ico">{item.icon}</span>
           <span className="txt">
             <b>{item.label}</b>

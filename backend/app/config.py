@@ -15,7 +15,6 @@ class Settings(BaseSettings):
 
     gemini_mode: Mode = "mock"
     ekispert_mode: Mode = "mock"
-    speech_mode: Mode = "mock"
 
     # 既定は Firestore（開発はエミュレータ）。memory はテスト用のフォールバック
     db_driver: Literal["firestore", "memory"] = "firestore"

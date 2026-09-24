@@ -1,7 +1,7 @@
 """オーケストレータ: 取り込み→推定→（家族確認）→旅程 のパイプライン進行。
 
 バッチは自律進行する（設計書 4章）。家族確認が要る段は awaiting_family で止め、
-家族の回答が入った時点で後続（旅程・語り）を人が起動する。
+家族の回答が入った時点で後続（旅程）を人が起動する。
 """
 
 from __future__ import annotations
@@ -11,7 +11,6 @@ import logging
 from app.agents.base import Agent, AgentResult
 from app.agents.estimate import EstimateAgent
 from app.agents.itinerary import ItineraryAgent
-from app.agents.story import StoryAgent
 from app.models import Job, JobStatus, PhotoStatus
 from app.repo import get_photo, save_job, save_photo
 
@@ -25,13 +24,12 @@ class Orchestrator(Agent):
 
     def __init__(self) -> None:
         self.estimate = EstimateAgent()
-        self.story = StoryAgent()
         self.itinerary = ItineraryAgent()
 
     def roster(self) -> list[dict[str, str]]:
         return [
             a.describe()
-            for a in (self, self.estimate, self.story, self.itinerary)
+            for a in (self, self.estimate, self.itinerary)
         ]
 
     async def run(self, *, job: Job) -> AgentResult:  # type: ignore[override]

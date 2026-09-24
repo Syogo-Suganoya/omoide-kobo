@@ -67,16 +67,6 @@ export const api = {
     }
   ) => request<Photo>(`/photos/${id}/confirm`, { method: "POST", body: json(payload) }),
   reestimate: (id: string) => request<Photo>(`/photos/${id}/reestimate`, { method: "POST" }),
-  addStoryText: (id: string, transcript: string, narrator?: string) =>
-    request<Photo>(`/photos/${id}/story/text`, { method: "POST", body: json({ transcript, narrator }) }),
-  addStoryAudio: (id: string, blob: Blob, narrator?: string) => {
-    const form = new FormData();
-    form.append("audio", blob, "talk.webm");
-    if (narrator) form.append("narrator", narrator);
-    return request<Photo>(`/photos/${id}/story`, { method: "POST", body: form });
-  },
-  confirmStory: (id: string, payload: { confirmed_by: string; people: string[]; events: string[] }) =>
-    request<Photo>(`/photos/${id}/story/confirm`, { method: "POST", body: json(payload) }),
 
   listTrips: (familyId: string) => request<Trip[]>(`/families/${familyId}/trips`),
   getTrip: (id: string) => request<Trip>(`/trips/${id}`),

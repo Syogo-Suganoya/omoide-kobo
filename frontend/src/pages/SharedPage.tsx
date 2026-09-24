@@ -44,24 +44,6 @@ export default function SharedPage() {
         ))}
       </div>
 
-      {view.photos.some((p) => p.story) && (
-        <section className="block" style={{ marginTop: 28 }}>
-          <h2>語り</h2>
-          <div className="stack">
-            {view.photos
-              .filter((p) => p.story)
-              .map((photo) => (
-                <div className="card" key={photo.id}>
-                  <h3>
-                    {photo.place}
-                    {photo.era ? `／${photo.era}` : ""}
-                  </h3>
-                  <p style={{ fontSize: "0.92rem" }}>{photo.story}</p>
-                </div>
-              ))}
-          </div>
-        </section>
-      )}
     </>
   );
 }

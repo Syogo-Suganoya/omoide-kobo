@@ -62,27 +62,6 @@ export interface Confirmed {
   confirmed_at?: string | null;
 }
 
-export interface PersonMention {
-  label: string;
-  note?: string | null;
-  confirmed_by_family: boolean;
-}
-
-export interface EventMention {
-  summary: string;
-  when_hint?: string | null;
-  confirmed_by_family: boolean;
-}
-
-export interface Story {
-  narrator?: string | null;
-  transcript?: string | null;
-  summary?: string | null;
-  people: PersonMention[];
-  events: EventMention[];
-  audio_ref?: string | null;
-}
-
 export type PhotoStatus =
   | "uploaded"
   | "estimating"
@@ -100,7 +79,6 @@ export interface Photo {
   estimate?: Estimate | null;
   questions: FamilyQuestion[];
   confirmed: Confirmed;
-  story?: Story | null;
   error?: string | null;
 }
 
@@ -177,7 +155,6 @@ export interface SharedView {
     id: string;
     place: string | null;
     era: string | null;
-    story: string | null;
     has_image: boolean;
   }[];
 }

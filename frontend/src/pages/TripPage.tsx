@@ -56,7 +56,7 @@ export default function TripPage() {
         family_id: family.id,
         photo_ids: selected,
         origin,
-        date: date || undefined,
+        date,
         stamina,
         start_time: startTime,
       });
@@ -130,6 +130,7 @@ export default function TripPage() {
             </div>
             <div style={{ flex: 1, minWidth: 140 }}>
               <span className="label">日付</span>
+              {/* 日付の無い旅程は渡せない。空のまま作れないようにする */}
               <input type="date" value={date} onChange={(e) => setDate(e.target.value)} />
             </div>
             <div style={{ flex: 1, minWidth: 120 }}>
@@ -148,7 +149,7 @@ export default function TripPage() {
             </div>
           </div>
           <div className="row" style={{ marginTop: 14, alignItems: "center" }}>
-            <button className="btn" disabled={busy || selected.length === 0} onClick={plan}>
+            <button className="btn" disabled={busy || selected.length === 0 || !date} onClick={plan}>
               {busy
                 ? "組み立てています…"
                 : selected.length === 0
@@ -156,9 +157,13 @@ export default function TripPage() {
                   : `${selected.length}か所の旅程をつくる`}
             </button>
             {/* 押せない理由を、押す前に言う */}
-            {selected.length === 0 && !busy && (
+            {!busy && (selected.length === 0 || !date) && (
               <span style={{ color: "var(--aka)", fontSize: "0.82rem" }}>
-                ↑ 上の写真を1枚以上選ぶと押せます
+                {selected.length === 0 && !date
+                  ? "↑ 上の写真を1枚以上選び、日付を入れると押せます"
+                  : selected.length === 0
+                    ? "↑ 上の写真を1枚以上選ぶと押せます"
+                    : "↑ 日付を入れると押せます"}
               </span>
             )}
           </div>
@@ -169,6 +174,16 @@ export default function TripPage() {
         <section className="block">
           <h2>{trip.title}</h2>
           <div className="row" style={{ marginBottom: 12 }}>
+            {trip.date && (
+              <span className="chip">
+                {new Date(`${trip.date}T00:00:00`).toLocaleDateString("ja-JP", {
+                  year: "numeric",
+                  month: "long",
+                  day: "numeric",
+                  weekday: "short",
+                })}
+              </span>
+            )}
             <span className="chip iro">所要 {Math.floor(trip.itinerary.total_minutes / 60)}時間
               {trip.itinerary.total_minutes % 60}分</span>
             <span className="chip">徒歩 {trip.itinerary.walking_minutes}分</span>

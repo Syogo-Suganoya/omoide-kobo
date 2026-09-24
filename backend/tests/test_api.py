@@ -73,14 +73,6 @@ async def test_full_flow(client: AsyncClient, gray_photo: bytes) -> None:
     assert confirmed["estimate"]["place_candidates"][0]["name"] != "JR五能線 驫木駅"
     assert confirmed["questions"][0]["answered"] is True
 
-    # 語り（テキスト経路）
-    story = await client.post(
-        f"/api/photos/{first['id']}/story/text",
-        json={"transcript": "母さんが女学校に通ってた駅なの。祖母もよく来ていた。", "narrator": "母"},
-    )
-    assert story.json()["story"]["summary"]
-    assert all(not p["confirmed_by_family"] for p in story.json()["story"]["people"])
-
     # 旅程
     second = photos[1]
     await client.post(
@@ -206,7 +198,7 @@ async def test_share_rejects_other_familys_target(client: AsyncClient) -> None:
 async def test_agents_roster(client: AsyncClient) -> None:
     body = (await client.get("/api/agents")).json()
     names = {a["name"] for a in body["roster"]}
-    assert names == {"orchestrator", "estimate", "story", "itinerary"}
+    assert names == {"orchestrator", "estimate", "itinerary"}
     assert body["modes"]["gemini"] == "mock"
     assert body["policy"]
 

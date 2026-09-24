@@ -14,7 +14,6 @@ services:
       # mock | live  … 外部APIの実接続切替（キーが入るまでは mock）
       GEMINI_MODE: ${GEMINI_MODE:-mock}
       EKISPERT_MODE: ${EKISPERT_MODE:-mock}
-      SPEECH_MODE: ${SPEECH_MODE:-mock}
       # firestore（既定・下の emulator を指す） | memory（テスト用）
       DB_DRIVER: ${DB_DRIVER:-firestore}
       FIRESTORE_EMULATOR_HOST: firestore:8085
@@ -55,6 +54,12 @@ services:
       - web-node-modules:/app/node_modules
     depends_on:
       - api
+    networks:
+      default:
+        aliases:
+          # 画面の写しに出る共有リンクの見た目を整えるための別名。
+          # `web:5173` のままだと、案内ページに compose の内側の名前が載ってしまう。
+          - omoide-kobo.local
 
   # 依存ロックの再生成（`docker compose run --rm lock`）。
   # requirements*.txt を編集したら必ず流し、requirements-lock.txt を更新する。
@@ -78,6 +83,32 @@ services:
     profiles: ["docs"]
     volumes:
       - ./docs:/docs
+
+  # 案内ページの「使い方」の写しを撮る
+  # （`docker compose --profile shots up --build shots`）。
+  # 画面を変えたら撮り直すだけで追随する。家族のデータを消してから撮ることに注意。
+  shots:
+    profiles: ["shots"]
+    build:
+      context: ./docs
+      dockerfile: Dockerfile.shots
+    image: omoide-kobo-shots
+    user: root
+    working_dir: /work
+    environment:
+      WEB_URL: http://omoide-kobo.local:5173
+      API_URL: /api
+      OUT_DIR: /work/frontend/public/guide
+      NODE_PATH: /usr/src/app/node_modules
+      TZ: Asia/Tokyo
+    entrypoint: ["node", "docs/shots.js"]
+    volumes:
+      - .:/work
+    depends_on:
+      api:
+        condition: service_healthy
+      web:
+        condition: service_started
 
   firestore:
     image: google/cloud-sdk:emulators

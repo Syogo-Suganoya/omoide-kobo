@@ -6,33 +6,6 @@ import { Confidence, ErrorBar, StatusChip } from "../components/bits";
 import { NowBar } from "../components/nowbar";
 import type { Photo } from "../types";
 
-function useRecorder(onDone: (blob: Blob) => void) {
-  const [recording, setRecording] = useState(false);
-  const [supported] = useState(() => typeof MediaRecorder !== "undefined");
-  const recorder = useRef<MediaRecorder | null>(null);
-
-  const start = async () => {
-    const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-    const chunks: BlobPart[] = [];
-    const rec = new MediaRecorder(stream);
-    rec.ondataavailable = (e) => chunks.push(e.data);
-    rec.onstop = () => {
-      stream.getTracks().forEach((t) => t.stop());
-      onDone(new Blob(chunks, { type: "audio/webm" }));
-    };
-    rec.start();
-    recorder.current = rec;
-    setRecording(true);
-  };
-
-  const stop = () => {
-    recorder.current?.stop();
-    setRecording(false);
-  };
-
-  return { recording, supported, start, stop };
-}
-
 export default function PhotoPage() {
   const { photoId = "" } = useParams();
   const [photo, setPhoto] = useState<Photo | null>(null);
@@ -42,7 +15,6 @@ export default function PhotoPage() {
   const [era, setEra] = useState("");
   const [correction, setCorrection] = useState("");
   const [who, setWho] = useState("母");
-  const [transcript, setTranscript] = useState("");
   const [busy, setBusy] = useState<string | null>(null);
   const [error, setError] = useState<unknown>(null);
 
@@ -51,7 +23,9 @@ export default function PhotoPage() {
     setPhoto(p);
     setSiblings(await api.listPhotos(p.album_id));
     setPlace(p.confirmed.place ?? "");
-    setEra(p.confirmed.era ?? p.estimate?.era?.label ?? "");
+    // 場所と同じく、AI の推定は初期値に入れない。
+    // 触っていない欄がそのまま「家族が確定した記憶」になってしまうため（設計書 7-2）。
+    setEra(p.confirmed.era ?? "");
     setCorrection(p.confirmed.family_correction ?? "");
   }, [photoId]);
 
@@ -72,15 +46,10 @@ export default function PhotoPage() {
     }
   };
 
-  const recorder = useRecorder((blob) =>
-    run("story", () => api.addStoryAudio(photoId, blob, who))
-  );
-
   const confirmRef = useRef<HTMLDetailsElement>(null);
-  const storyRef = useRef<HTMLDetailsElement>(null);
 
-  const jump = (target: "confirm" | "story") => {
-    const el = target === "confirm" ? confirmRef.current : storyRef.current;
+  const jump = () => {
+    const el = confirmRef.current;
     if (el) el.open = true;
     el?.scrollIntoView({ behavior: "smooth", block: "start" });
   };
@@ -88,6 +57,7 @@ export default function PhotoPage() {
   if (!photo) return <ErrorBar error={error ?? null} />;
 
   const top = photo.estimate?.place_candidates[0];
+  const topEra = photo.estimate?.era;
 
   const at = siblings.findIndex((p) => p.id === photo.id);
   const neighbours = { prev: siblings[at - 1], next: siblings[at + 1] };
@@ -174,14 +144,20 @@ export default function PhotoPage() {
                 {photo.confirmed.place ? "確定済み・直せます" : "いまここ"}
               </span>
             </summary>
-            <p className="lead">推定の決め手を、覚えている人に確かめます。</p>
+            <p className="lead">
+              推定の決め手を、覚えている人に確かめます。
+              {photo.questions.length > 0 && "答えられるものだけで構いません。下の「場所」が入っていれば確定できます。"}
+            </p>
             {photo.questions.length === 0 && <div className="empty">質問はまだありません。</div>}
-            {photo.questions.map((q) => (
+            {photo.questions.map((q, i) => (
               <div className="field" key={q.id}>
-                <span className="label">{q.reason}</span>
+                {/* 何を確かめたい質問かを番号と一緒に出す。3つ並ぶので見分けがつくようにする */}
+                <span className="label">
+                  質問 {i + 1}／{photo.questions.length}・{q.reason}
+                </span>
                 <p style={{ fontSize: "0.9rem", marginBottom: 6 }}>{q.text}</p>
                 <input
-                  placeholder={q.answered ? "" : "覚えていることを書く"}
+                  placeholder={q.answered ? "" : "覚えていれば書く（任意）"}
                   value={answers[q.id] ?? q.answer ?? ""}
                   onChange={(e) => setAnswers({ ...answers, [q.id]: e.target.value })}
                 />
@@ -210,8 +186,23 @@ export default function PhotoPage() {
               )}
             </div>
             <div className="field">
-              <span className="label">年代</span>
-              <input value={era} onChange={(e) => setEra(e.target.value)} placeholder="例: 昭和42年ごろ" />
+              <span className="label">年代（分からなければ空のままで構いません）</span>
+              {/* 場所と同じ扱い。AI の推定は押して入れてもらう */}
+              <input
+                value={era}
+                onChange={(e) => setEra(e.target.value)}
+                placeholder={topEra ? `例: ${topEra.label}` : "例: 昭和42年ごろ"}
+              />
+              {!era && topEra && (
+                <button
+                  type="button"
+                  className="btn ghost small"
+                  style={{ marginTop: 6 }}
+                  onClick={() => setEra(topEra.label)}
+                >
+                  「{topEra.label}」を入れる
+                </button>
+              )}
             </div>
             <div className="field">
               <span className="label">AI の推定への訂正メモ</span>
@@ -267,102 +258,6 @@ export default function PhotoPage() {
                 {photo.confirmed.confirmed_by} さんが「{photo.confirmed.place}」として確定しました。
                 以後この写真の場所は、AI の候補ではなくこちらが使われます。
               </p>
-            )}
-          </details>
-
-          {/* 場所が決まった写真は、次が語り。開いた状態で出す */}
-          <details
-            className="card fold"
-            ref={storyRef}
-            open={Boolean(photo.story) || Boolean(photo.confirmed.place)}
-          >
-            <summary>
-              <h3>語りを聞く</h3>
-              <span className={`chip ${photo.story ? "muted" : photo.confirmed.place ? "aka" : "muted"}`}>
-                {photo.story ? "記録あり" : photo.confirmed.place ? "いまここ" : "場所が決まってから"}
-              </span>
-            </summary>
-            <p className="lead">
-              写真を見ながらの会話をそのまま記録します。人物の関係は AI では確定せず、家族が承認したものだけ残ります。
-            </p>
-
-            <div className="row" style={{ marginBottom: 10 }}>
-              {recorder.supported ? (
-                recorder.recording ? (
-                  <button className="btn danger" onClick={recorder.stop}>
-                    ■ 録音を止めて記録する
-                  </button>
-                ) : (
-                  <button
-                    className="btn"
-                    disabled={busy !== null}
-                    onClick={() => recorder.start().catch(setError)}
-                  >
-                    ● 語りを録音する
-                  </button>
-                )
-              ) : (
-                <span className="chip muted">この端末では録音が使えません</span>
-              )}
-            </div>
-
-            <div className="field">
-              <span className="label">書き起こしから登録する</span>
-              <textarea
-                rows={3}
-                value={transcript}
-                onChange={(e) => setTranscript(e.target.value)}
-                placeholder="会話をそのまま貼り付けても構いません"
-              />
-            </div>
-            <button
-              className="btn ghost"
-              disabled={busy !== null || transcript.trim().length === 0}
-              onClick={() =>
-                run("story-text", async () => {
-                  await api.addStoryText(photo.id, transcript, who);
-                  setTranscript("");
-                })
-              }
-            >
-              語りとして登録する
-            </button>
-
-            {photo.story && (
-              <div style={{ marginTop: 16 }}>
-                <p style={{ fontSize: "0.92rem" }}>{photo.story.summary}</p>
-                {photo.story.transcript && (
-                  <p style={{ color: "var(--sub)", fontSize: "0.8rem", marginTop: 6 }}>
-                    「{photo.story.transcript}」
-                  </p>
-                )}
-                <div className="row" style={{ marginTop: 10 }}>
-                  {photo.story.people.map((p) => (
-                    <span key={p.label} className={`chip ${p.confirmed_by_family ? "iro" : "muted"}`}>
-                      {p.label}
-                      {p.confirmed_by_family ? "（家族が承認）" : "（未確定）"}
-                    </span>
-                  ))}
-                </div>
-                {photo.story.people.some((p) => !p.confirmed_by_family) && (
-                  <button
-                    className="btn small"
-                    style={{ marginTop: 10 }}
-                    disabled={busy !== null}
-                    onClick={() =>
-                      run("story-confirm", () =>
-                        api.confirmStory(photo.id, {
-                          confirmed_by: who,
-                          people: photo.story!.people.map((p) => p.label),
-                          events: photo.story!.events.map((e) => e.summary),
-                        })
-                      )
-                    }
-                  >
-                    登場人物と出来事を家族として承認する
-                  </button>
-                )}
-              </div>
             )}
           </details>
 

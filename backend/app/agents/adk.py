@@ -1,6 +1,6 @@
 """Agent Development Kit へのブリッジ。
 
-内製のエージェント（estimate / story / itinerary）を ADK のツールとして公開し、
+内製のエージェント（estimate / itinerary）を ADK のツールとして公開し、
 Gemini の live モード時は ADK の LlmAgent が自然文の指示からパイプラインを起動できるようにする。
 mock モード（＝鍵なし）では ADK を読み込まず、Orchestrator が直接パイプラインを回す。
 """
@@ -29,17 +29,6 @@ async def estimate_photo(photo_id: str) -> dict[str, Any]:
     return {"summary": result.summary, **result.data}
 
 
-async def capture_story(photo_id: str, transcript: str, narrator: str = "") -> dict[str, Any]:
-    """家族の語り（書き起こし）を構造化して写真に紐付ける。人物関係は確定しない。"""
-    photo = await get_photo(photo_id)
-    if photo is None:
-        return {"error": "写真が見つかりません"}
-    result = await get_orchestrator().story.run(
-        photo=photo, transcript=transcript, narrator=narrator or None
-    )
-    return {"summary": result.summary, **result.data}
-
-
 async def plan_trip(family_id: str, photo_ids: list[str], origin: str, stamina: str = "low") -> dict[str, Any]:
     """確定した思い出の場所を巡る、休憩込みの旅程を作る。"""
     photos = [p for p in await list_family_photos(family_id) if p.id in photo_ids]
@@ -48,7 +37,7 @@ async def plan_trip(family_id: str, photo_ids: list[str], origin: str, stamina: 
     return {"summary": result.summary, **result.data}
 
 
-TOOLS = [estimate_photo, capture_story, plan_trip]
+TOOLS = [estimate_photo, plan_trip]
 
 
 def adk_status() -> dict[str, Any]:
@@ -72,7 +61,7 @@ def build_root_agent() -> Any:
     return LlmAgent(
         name="omoide_kobo_orchestrator",
         model=get_settings().gemini_model,
-        description="古写真の場所推定・語り・巡礼旅程を進めるオーケストレータ",
+        description="古写真の場所推定・巡礼旅程を進めるオーケストレータ",
         instruction=INSTRUCTION,
         tools=list(TOOLS),
     )

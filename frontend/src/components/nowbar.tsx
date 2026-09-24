@@ -14,7 +14,7 @@ export function NowBar({
   photo: Photo;
   /** 同じアルバムの前後の写真。1枚ずつ片づける作業を続けられるように */
   neighbours: { prev?: Photo; next?: Photo };
-  onJump: (target: "confirm" | "story") => void;
+  onJump: (target: "confirm") => void;
 }) {
   const { prev, next } = neighbours;
 
@@ -49,18 +49,9 @@ export function NowBar({
         </button>
       ),
     };
-  } else if (!photo.story) {
-    body = {
-      text: `「${photo.confirmed.place}」と決まりました。次は、この写真の話を残せます。`,
-      action: (
-        <button className="btn small" onClick={() => onJump("story")}>
-          語りを残す
-        </button>
-      ),
-    };
   } else {
     body = {
-      text: "この写真はひととおり片づきました。",
+      text: `「${photo.confirmed.place}」と決まりました。この写真はひととおり片づいています。`,
       action: (
         <>
           <Link className="btn small" to="/trip">

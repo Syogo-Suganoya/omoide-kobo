@@ -99,29 +99,6 @@ class Confirmed(BaseModel):
     confirmed_at: datetime | None = None
 
 
-class PersonMention(BaseModel):
-    label: str  # 「祖母」「近所の◯◯さん」
-    note: str | None = None
-    # 設計書 7-3: 人物関係は AI が確定しない。家族が確定するまで False。
-    confirmed_by_family: bool = False
-
-
-class EventMention(BaseModel):
-    summary: str
-    when_hint: str | None = None
-    confirmed_by_family: bool = False
-
-
-class Story(BaseModel):
-    narrator: str | None = None
-    transcript: str | None = None
-    summary: str | None = None
-    people: list[PersonMention] = Field(default_factory=list)
-    events: list[EventMention] = Field(default_factory=list)
-    audio_ref: str | None = None
-    created_at: datetime = Field(default_factory=now)
-
-
 class Photo(BaseModel):
     id: str = Field(default_factory=lambda: new_id("pho"))
     album_id: str
@@ -132,7 +109,6 @@ class Photo(BaseModel):
     estimate: Estimate | None = None
     questions: list[FamilyQuestion] = Field(default_factory=list)
     confirmed: Confirmed = Field(default_factory=Confirmed)
-    story: Story | None = None
     error: str | None = None
     created_at: datetime = Field(default_factory=now)
     updated_at: datetime = Field(default_factory=now)
@@ -249,7 +225,6 @@ class AuditAction(str, Enum):
     upload = "upload"
     estimate = "estimate"
     family_confirm = "family_confirm"
-    story_capture = "story_capture"
     trip_plan = "trip_plan"
     share = "share"
     share_view = "share_view"

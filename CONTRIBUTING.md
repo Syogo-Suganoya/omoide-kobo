@@ -19,11 +19,11 @@ docker compose up --build
 
 ## データの置き場
 
-アルバム・写真のメタ情報・物語・旅程・共有リンク・監査ログは、**すべて Firestore** に入ります。
+アルバム・写真のメタ情報・旅程・共有リンク・監査ログは、**すべて Firestore** に入ります。
 開発ではエミュレータ（`firestore` サービス）、本番では GCP の Firestore を同じコードで使います。
 切り替えは `FIRESTORE_EMULATOR_HOST` の有無だけで、アプリ側のコードは変わりません。
 
-写真と音声の実体は Firestore ではなくオブジェクトストレージです（開発はボリューム `omoide-data` の
+写真の実体は Firestore ではなくオブジェクトストレージです（開発はボリューム `omoide-data` の
 `/data/storage`、本番は Cloud Storage）。Firestore が持つのは、その参照（`family/{familyId}/…`）だけです。
 
 **エミュレータのデータはメモリ上にあるので、`docker compose down` すると消えます。**
@@ -81,7 +81,6 @@ docker compose exec web npm run build       # フロントの型検査（tsc -b�
 | `test_ingest_proposes_without_confirming` | 預かった写真をそのまま保管 / 推定が候補・根拠・確度つきで、確定していないこと |
 | `test_family_memory_overrides_ai` | 家族の確定が AI の推定より優先され、推定も消えないこと |
 | `test_correction_feeds_back_into_next_estimate` | 訂正が後続の推定コンテキストに入ること |
-| `test_story_does_not_confirm_relations` | 人物関係を AI が確定しないこと |
 | `test_itinerary_times_never_go_backwards` | 休憩を挟んだぶん後続の時刻がずれること |
 | `test_audit_records_external_calls_with_policy` | 外部呼び出しが非学習ポリシーつきで記録されること |
 | `test_purge_family_removes_photos_and_blobs` | 家族単位の完全削除 |
@@ -98,10 +97,9 @@ backend/
   app/agents/                ADK のエージェント構成に対応
     orchestrator.py          取り込み→推定→旅程 の進行（自律）
     estimate.py              場所/年代を根拠と確度つきで提示（提示まで）
-    story.py                 語りの構造化（抽出は自律・確定は家族）
     itinerary.py             現況確認 → 休憩込みの旅程生成（提案まで）
     adk.py                   Agent Development Kit へのブリッジ（live 時に LlmAgent 化）
-  app/adapters/              gemini / ekispert / speech（mock ⇄ live）
+  app/adapters/              gemini / ekispert（mock ⇄ live）
   app/infra/                 store.py（Firestore。memory はテスト用）, blobs.py（GCS or ローカル・家族スコープ強制）
   app/api/                   FastAPI ルータ
   tests/                     パイプラインとガバナンスの回帰
@@ -124,12 +122,26 @@ docs/architecture.py         アーキテクチャ図の定義
 「押すと何ができるか」を出す。狭い画面では CSS で下端の固定バーに回すので、DOM は1つだけにしておく。
 メニューの呼び名は、その画面の見出しと案内ページの文言に揃える（同じ場所を別の名前で呼ばない）。
 
+**家族が確定する欄に、AI の値を初期値として入れない。** 場所も年代も、候補は
+プレースホルダ（`例: ◯◯`）と「「◯◯」を入れる」ボタンで示し、押してもらう。
+初期値に入れると、触っていない欄がそのまま「家族が確定した記憶」として保存される（設計書 7-2）。
+
+**まだ確かめていない名前は、確定した名前と同じ顔で出さない。** 一覧のキャプションなどで
+AI の候補を出すときは `PlaceLabel` を使い、「「◯◯」かも＋候補」の形にする。
+
+**メニューは、深い画面でも現在地を示す。** `/albums` `/photos` は「写真を調べる」の配下として
+`nav.tsx` の `owns` に並べてある。画面を足したら、どのタブの配下かをここに書く。
+
+**押した結果は必ず画面で言う。** 成否が環境に左右される操作（クリップボードへのコピーなど）は、
+成功したときだけ「できました」と言い、駄目なときは代わりの手（URL を選んで写す）をその場に出す。
+成功を決め打ちで書かない。
+
 **押せないボタンは、押せない理由を隣に書く。** 旅程・共有リンク・招待・場所の確定・削除は、
 条件を満たすまで `disabled` にしたうえで「◯◯すると押せます」を並べて出す。
 選ばせる UI（旅の写真選び）は、色の変化だけに頼らず「選ぶ／✓n番目」の札を出す。
 
 **画面の文言は、いまの中身に合わせて変える。** 例：アルバムの説明は 0枚・推定中・確認待ち・全確定で
-別の文を出す（画面に無い札を探させない）。写真ページの「家族にたずねる」と「語り」は、
+別の文を出す（画面に無い札を探させない）。写真ページの「家族にたずねる」は、
 `<details>` の開閉を進み具合に連動させ、いまやることが一番大きく見えるようにする。
 
 **エージェント名・接続モード・監査ログは画面に出さない。** ユーザーが知る必要のない実装の都合なので、
@@ -138,21 +150,40 @@ docs/architecture.py         アーキテクチャ図の定義
 
 ### 使い方のスクリーンショット
 
-案内ページの「使い方」は、`frontend/public/guide/` に置いた画像をスライドで見せます。
-未配置でも画面は壊れず、「スクリーンショット準備中」の枠とファイル名が出るので、撮れたものから足せます。
+案内ページの「使い方」は、`frontend/public/guide/` の画像をスライドで見せます。
+**手で撮らず、[docs/shots.js](docs/shots.js) に撮らせます。**
+
+```bash
+GEMINI_MODE=mock EKISPERT_MODE=mock docker compose --profile shots up --build shots
+```
+
+利用者と同じ順に画面を操作して6枚撮るので、画面を変えたら流し直すだけで追随します。
 
 | ファイル | 撮る画面 |
 |---|---|
-| `01-family.png` | 「写真をなおす」の入口（写真を入れる） |
+| `01-family.png` | 「写真を調べる」の入口（写真を入れる） |
 | `02-upload.png` | 写真を入れる枠 |
 | `03-progress.png` | 取り込みの進行 |
 | `04-confirm.png` | AI の推定と家族の確定フォーム |
-| `05-story.png` | 語りの録音 |
-| `06-trip.png` | 旅程 |
-| `07-share.png` | 共有リンク |
+| `05-trip.png` | 旅程 |
+| `06-share.png` | 共有リンク |
 
-横長（16:10 あたり）で撮ると、一覧のサムネイルと縦横比が揃います。
+撮る前に**家族を全部消します**（1枚目が「家族がまだ無い人の入口」のため）。
+開発のエミュレータはメモリ上なので消えて困るものは入っていませんが、
+本物の Firestore を指した状態では流さないでください。
+
+`GEMINI_MODE=mock` を付けるのは、鍵や live 依存の有無に左右されず、毎回同じ推定結果で撮れるからです。
+付け忘れて live のまま流すと、推定が通らない理由を添えて途中で止まります。
+
+**案内ページ側の窓（`.guide .shot .win`）は 16:10 に固定**で、画面を送っても伸び縮みしません。
+横は必ず全部見え、入りきらない縦は下が切れます（`object-fit: cover` にすると左右が切れて、
+写真ページの左の列が消えてしまうので使いません）。
+
+撮る側は高さを決め打ちせず、「どの見出しからどの要素まで」で指定します（`frame()` の `from` / `to`）。
+`from` に置いた見出しが窓の頭に来るので、下が切れても大事なところは残ります。
+
 説明文とファイル名の対応は [LandingPage.tsx](frontend/src/pages/LandingPage.tsx) の `STEPS` にあります。
+**手順を足し引きしたら、`STEPS` と `shots.js` の両方を直してください。**
 
 ## 変更するときに守ること
 
@@ -205,7 +236,6 @@ OpenAPI は http://localhost:8080/docs にあります。
 | GET | `/api/jobs/{id}` | 取り込みジョブの進行 |
 | POST | `/api/photos/{id}/confirm` | 家族の記憶で確定・訂正 |
 | POST | `/api/photos/{id}/reestimate` | 訂正を踏まえた再推定 |
-| POST | `/api/photos/{id}/story` | 語り（音声）の記録 |
 | POST | `/api/trips` | 旅程の生成 |
 | POST | `/api/share` | 期限つき共有リンクの発行 |
 | GET | `/api/shared/{token}` | 共有リンクの閲覧（ログイン不要・読むだけ） |
@@ -219,7 +249,6 @@ OpenAPI は http://localhost:8080/docs にあります。
 
 - **Gemini** — 昭和期の駅・商店街・海岸・神社を題材にした推定フィクスチャ（根拠・確度つき）を、ファイル名から決定的に返す。家族の訂正が入ると該当候補の確度が上がる挙動まで再現する
 - **駅すぱあと** — 徒歩→特急→乗換→在来線→徒歩 の区間列を生成（休憩の挿入と体力配慮は本実装側のロジック）
-- **Speech-to-Text** — 語りのサンプル書き起こしを返す
 
 ## 駅すぱあと API MCP サーバー
 

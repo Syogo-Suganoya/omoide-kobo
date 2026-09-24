@@ -105,20 +105,6 @@ async def test_correction_feeds_back_into_next_estimate(gray_photo: bytes) -> No
     assert after > before
 
 
-async def test_story_does_not_confirm_relations(gray_photo: bytes) -> None:
-    family, album, photos = await _seed(gray_photo, count=1)
-    await _run_ingest(family, album, photos)
-    photo = (await repo.list_photos(album.id))[0]
-
-    await get_orchestrator().story.run(photo=photo, audio=b"dummy-audio", filename="talk.webm", narrator="母")
-    reloaded = await repo.get_photo(photo.id)
-
-    assert reloaded.story and reloaded.story.transcript
-    assert reloaded.story.people
-    assert all(not p.confirmed_by_family for p in reloaded.story.people)
-    assert reloaded.story.audio_ref
-
-
 async def test_itinerary_inserts_breaks_for_low_stamina(gray_photo: bytes) -> None:
     family, album, photos = await _seed(gray_photo, count=2)
     await _run_ingest(family, album, photos)

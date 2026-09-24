@@ -59,11 +59,14 @@ export function GuideCarousel({ steps }: { steps: GuideStep[] }) {
               <code>{step.image}</code>
             </div>
           ) : (
-            <img
-              src={step.image}
-              alt={`${step.title}の画面`}
-              onError={() => setMissing((m) => ({ ...m, [step.image]: true }))}
-            />
+            // 窓の大きさは画面ごとに変えない。長い写しは下が切れる
+            <div className="win">
+              <img
+                src={step.image}
+                alt={`${step.title}の画面`}
+                onError={() => setMissing((m) => ({ ...m, [step.image]: true }))}
+              />
+            </div>
           )}
         </div>
 

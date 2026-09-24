@@ -13,7 +13,7 @@ main への push で自動デプロイする **GitHub Actions（CD）** も用�
 |---|---|
 | Cloud Run サービス | アプリ本体（api + PWA） |
 | Artifact Registry | コンテナイメージの置き場 |
-| Cloud Storage バケット | 写真・音声（家族限定・公開しない） |
+| Cloud Storage バケット | 写真（家族限定・公開しない） |
 | Firestore | アルバム・写真のメタ情報・物語・旅程・共有リンク・監査ログ |
 | Secret Manager | Gemini / 駅すぱあと のキー |
 | サービスアカウント | Cloud Run が上記にアクセスするための身元 |
@@ -89,7 +89,7 @@ gcloud services enable \
 gcloud artifacts repositories create $REPO \
   --repository-format=docker --location=$REGION
 
-# 写真・音声のバケット（公開アクセスは付けない）
+# 写真のバケット（公開アクセスは付けない）
 gcloud storage buckets create gs://$BUCKET \
   --location=$REGION --uniform-bucket-level-access
 
@@ -162,7 +162,7 @@ gcloud run deploy $SERVICE \
   --no-cpu-throttling \
   --memory 1Gi \
   --timeout 600 \
-  --set-env-vars "DB_DRIVER=firestore,STORAGE_DRIVER=gcs,GCS_BUCKET=$BUCKET,GOOGLE_CLOUD_PROJECT=$PROJECT,GEMINI_MODE=live,EKISPERT_MODE=live,SPEECH_MODE=mock" \
+  --set-env-vars "DB_DRIVER=firestore,STORAGE_DRIVER=gcs,GCS_BUCKET=$BUCKET,GOOGLE_CLOUD_PROJECT=$PROJECT,GEMINI_MODE=live,EKISPERT_MODE=live" \
   --set-secrets "GEMINI_API_KEY=gemini-key:latest,EKISPERT_API_KEY=ekispert-key:latest"
 ```
 
@@ -282,7 +282,6 @@ gcloud builds submit --config cloudbuild.yaml \
        | `GOOGLE_CLOUD_PROJECT` | `omoide-kobo` |
        | `GEMINI_MODE` | `mock`（実 API を使うなら `live`） |
        | `EKISPERT_MODE` | `mock` |
-       | `SPEECH_MODE` | `mock` |
 
      - live にする場合は「シークレットの参照」から下記を**環境変数として公開**で追加（バージョンは `latest`）
 
@@ -420,6 +419,18 @@ gh variable delete GEMINI_MODE
 
 `backend/` `frontend/` `Dockerfile.deploy` `cloudbuild.yaml` のいずれかが変わった push でだけ走ります。
 ドキュメントだけの変更では動きません。
+
+### いま何が出ているかを GitHub で見る
+
+デプロイのジョブは `production` という **Environment** に紐づけてあります。
+初回のデプロイで GitHub 側に自動で作られるので、事前の準備は要りません。
+
+- リポジトリのトップ右側の **Environments**、または **Settings → Environments** に履歴が並びます
+- 現在の URL は、デプロイのたびに `gcloud run services describe` で取った実際の値が入ります
+  （ワークフローに URL を書き写していないので、サービスを作り直しても食い違いません）
+
+承認を挟みたくなったら、**Settings → Environments → production → Required reviewers** を付けます。
+ワークフローは変えずに、デプロイの手前で止まるようになります。
 
 ## 4. 失敗したときは
 

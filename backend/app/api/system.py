@@ -40,7 +40,6 @@ async def agents() -> dict[str, object]:
         "modes": {
             "gemini": settings.gemini_mode,
             "ekispert": settings.ekispert_mode,
-            "speech": settings.speech_mode,
             "db": settings.db_driver,
             "storage": settings.storage_driver,
         },
@@ -130,7 +129,7 @@ async def _resolve(token: str) -> ShareLink:
 
 
 def _public_photo(photo: Any) -> dict[str, Any]:
-    """閲覧リンクでは、家族が確定した内容と語りの要約だけを出す。
+    """閲覧リンクでは、家族が確定した内容だけを出す。
 
     AI の推定候補・確認質問・監査情報は共有相手には見せない。
     """
@@ -138,7 +137,6 @@ def _public_photo(photo: Any) -> dict[str, Any]:
         "id": photo.id,
         "place": photo.resolved_place,
         "era": photo.confirmed.era,
-        "story": photo.story.summary if photo.story else None,
         "has_image": bool(photo.original_ref),
     }
 
