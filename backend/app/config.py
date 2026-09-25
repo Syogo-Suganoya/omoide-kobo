@@ -29,8 +29,10 @@ class Settings(BaseSettings):
     google_cloud_project: str = "omoide-kobo-local"
 
     gemini_api_key: str = ""
-    # 場所・年代推定は画像入力が要るので、マルチモーダル対応の最新 Flash を既定にする
-    gemini_model: str = "gemini-3.7-flash"
+    # 場所・年代推定は画像入力が要るので、マルチモーダル対応の Flash を既定にする。
+    # gemini-3.7-flash はモデル一覧には出るが、2026-09 時点では ping すら
+    # 503 UNAVAILABLE（high demand）を返し続けて使えない。空くまでは 3.5 を使う。
+    gemini_model: str = "gemini-3.5-flash"
     # 駅すぱあと API MCP サーバー（Streamable HTTP）。キーはヘッダで渡す
     ekispert_mcp_url: str = "https://api-mcp.ekispert.jp/mcp"
     ekispert_api_key: str = ""
