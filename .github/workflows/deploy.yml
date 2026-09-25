@@ -72,6 +72,9 @@ jobs:
             --config cloudbuild.yaml \
             --substitutions=_IMAGE=${{ env.REGION }}-docker.pkg.dev/${{ env.PROJECT_ID }}/${{ env.REPO }}/${{ env.SERVICE }}:${{ github.sha }}
 
+      # --set-secrets を毎回書くのは、消したシークレットの参照が残り続けないようにするため。
+      # 省くと Cloud Run は前のリビジョンの設定を引き継ぐので、Secret Manager から
+      # 消した鍵を参照したままになり、以後の全デプロイが SecretsAccessCheckFailed で止まる。
       - name: Cloud Run へリリース
         id: release
         run: |
@@ -83,7 +86,8 @@ jobs:
             --no-cpu-throttling \
             --memory 1Gi \
             --timeout 600 \
-            --set-env-vars "DB_DRIVER=firestore,FIRESTORE_DATABASE=${{ vars.FIRESTORE_DATABASE || '(default)' }},STORAGE_DRIVER=gcs,GCS_BUCKET=${{ vars.GCS_BUCKET }},GOOGLE_CLOUD_PROJECT=${{ env.PROJECT_ID }},GEMINI_MODE=${{ vars.GEMINI_MODE || 'mock' }},GEMINI_MODEL=${{ vars.GEMINI_MODEL || 'gemini-3.5-flash' }},EKISPERT_MODE=${{ vars.EKISPERT_MODE || 'mock' }}"
+            --set-env-vars "DB_DRIVER=firestore,FIRESTORE_DATABASE=${{ vars.FIRESTORE_DATABASE || '(default)' }},STORAGE_DRIVER=gcs,GCS_BUCKET=${{ vars.GCS_BUCKET }},GOOGLE_CLOUD_PROJECT=${{ env.PROJECT_ID }},GEMINI_MODE=${{ vars.GEMINI_MODE || 'mock' }},GEMINI_MODEL=${{ vars.GEMINI_MODEL || 'gemini-3.5-flash' }},EKISPERT_MODE=${{ vars.EKISPERT_MODE || 'mock' }}" \
+            --set-secrets "GEMINI_API_KEY=gemini-key:latest,EKISPERT_API_KEY=ekispert-key:latest"
 
           echo "url=$(gcloud run services describe ${{ env.SERVICE }} --region ${{ env.REGION }} --format='value(status.url)')" >> "$GITHUB_OUTPUT"
 

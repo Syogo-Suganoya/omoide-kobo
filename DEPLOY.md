@@ -170,8 +170,20 @@ gcloud run deploy $SERVICE \
   --no-cpu-throttling \
   --memory 1Gi \
   --timeout 600 \
-  --set-env-vars "DB_DRIVER=firestore,STORAGE_DRIVER=gcs,GCS_BUCKET=$BUCKET,GOOGLE_CLOUD_PROJECT=$PROJECT,GEMINI_MODE=live,EKISPERT_MODE=live" \
+  --set-env-vars "DB_DRIVER=firestore,FIRESTORE_DATABASE=omoide-kobo,STORAGE_DRIVER=gcs,GCS_BUCKET=$BUCKET,GOOGLE_CLOUD_PROJECT=$PROJECT,GEMINI_MODE=live,GEMINI_MODEL=gemini-3.5-flash,EKISPERT_MODE=live" \
   --set-secrets "GEMINI_API_KEY=gemini-key:latest,EKISPERT_API_KEY=ekispert-key:latest"
+```
+
+**`--set-secrets` は毎回書いてください。** 省くと Cloud Run は前のリビジョンの設定を引き継ぎます。
+Secret Manager から鍵を消しても参照だけが残り、そのあとのデプロイが
+`SecretsAccessCheckFailed` で起動できなくなります（トラフィックは古いリビジョンのまま
+流れ続けるので、CD が緑でも新しいコードが出ていない、という状態になります）。
+
+消し忘れた参照は、次のコマンドで外せます。
+
+```bash
+gcloud run services update $SERVICE --region $REGION \
+  --remove-secrets YOUCAM_API_KEY,YOUCAM_SECRET_KEY
 ```
 
 実 API に切り替えるときは、`*_MODE` を `live` にしてシークレットを渡します。
