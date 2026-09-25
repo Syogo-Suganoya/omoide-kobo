@@ -4,7 +4,7 @@ import type { Job, Photo, PhotoStatus } from "../types";
  * 写真につける場所の名前。
  *
  * 家族が確定した名前と、AI がまだ確かめていない候補を、同じ顔で出さない。
- * 候補は括弧でくくって「候補」と添え、断定に見えないようにする（設計書 7-2）。
+ * 候補は括弧でくくって「候補」と添え、断定に見えないようにする。
  */
 export function PlaceLabel({ photo }: { photo: Photo }) {
   if (photo.confirmed.place) return <>{photo.confirmed.place}</>;

@@ -1,4 +1,4 @@
-"""監査ログ（設計書 7章）。
+"""監査ログ。
 
 Firestore の audit コレクションと、Cloud Logging が拾える構造化ログ(stdout JSON)の両方に出す。
 外部 API 呼び出しは必ず policy（非学習ポリシー）を添えて記録する。

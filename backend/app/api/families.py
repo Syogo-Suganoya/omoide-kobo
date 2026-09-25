@@ -77,7 +77,7 @@ async def rename_family(family_id: str, payload: FamilyRename) -> Family:
 
 @router.post("/families/{family_id}/members", response_model=Family)
 async def invite_member(family_id: str, payload: MemberInvite) -> Family:
-    """共有は家族の明示招待制（設計書 7-3）。"""
+    """共有は家族の明示招待制。"""
     family = await get_family(family_id)
     member = Member(name=payload.name, relation=payload.relation)
     family.members.append(member)
@@ -114,7 +114,7 @@ async def update_invite(family_id: str, uid: str, payload: InviteDecision) -> Fa
 
 @router.delete("/families/{family_id}")
 async def delete_family(family_id: str, actor: str = "owner") -> dict[str, object]:
-    """削除権（設計書 7-4）: 写真・音声・旅程を一括削除し、実行証跡だけ残す。"""
+    """削除権: 写真・旅程を一括削除し、実行証跡だけ残す。"""
     family = await get_family(family_id)
     photos = await repo.list_family_photos(family_id)
     blob_count = get_blobs().delete_prefix(f"family/{family_id}")

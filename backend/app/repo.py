@@ -112,7 +112,7 @@ async def list_audit(family_id: str) -> list[AuditLog]:
 
 
 async def purge_family(family_id: str) -> dict[str, int]:
-    """家族単位の完全削除（設計書 7-4）。監査ログは証跡として残す。"""
+    """家族単位の完全削除。監査ログは証跡として残す。"""
     store = get_store()
     removed = {
         PHOTOS: await store.delete_where(PHOTOS, family_id=family_id),

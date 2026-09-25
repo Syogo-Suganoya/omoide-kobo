@@ -3,7 +3,7 @@
 - firestore: 既定。開発はエミュレータ、本番は GCP（FIRESTORE_EMULATOR_HOST の有無で切り替わる）
 - memory: テスト専用のフォールバック。プロセス内に持ち、/data/db.json に落とすだけ
 
-コレクション名は設計書 6章 と対応: families / albums / photos / trips / shares / audit / jobs
+コレクションは families / albums / photos / trips / shares / audit / jobs
 """
 
 from __future__ import annotations

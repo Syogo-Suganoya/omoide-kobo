@@ -1,7 +1,6 @@
 # 開発ガイド
 
-オモイデ工房を触るときの手引きです。使い方の概要は [README](README.md) を見てください。
-
+オモイデ工房を触るときの手引きです。
 ## 開発環境
 
 Docker だけあれば動きます。ローカルに Python も Node も要りません。
@@ -16,6 +15,12 @@ docker compose up --build
 | `web` | 5173 | Vite dev server（HMR。`/api` は `api` へプロキシ） |
 | `firestore` | 8085 | Firestore エミュレータ（`api` はこれが立ち上がるのを待って起動） |
 | `docs` | — | アーキテクチャ図の生成（`--profile docs` のときだけ） |
+
+画面は http://localhost:5173、API は http://localhost:8080 です。
+トップは機能と使い方の案内ページなので、実際に触るなら「写真を調べる」から入ってください。
+
+**外部 API のキーは要りません。** Gemini も駅すぱあともモックで動くので、鍵がない状態でも
+取り込みから旅程作成まで一通り試せます。実 API に切り替える手順は下の「モックの中身」以降にあります。
 
 ## データの置き場
 
@@ -74,7 +79,7 @@ docker compose exec web npm run build       # フロントの型検査（tsc -b�
 `FirestoreStore` の実コードだけは `test_firestore_store.py` がエミュレータ相手に踏みます。
 エミュレータがいない環境では、このファイルは自動で skip されます。
 
-テストはパイプラインの回帰だけでなく、**設計書 7 章のガバナンス要件を固定する**ためにあります。
+テストはパイプラインの回帰だけでなく、**ガバナンス要件を固定する**ためにあります。
 
 | テスト | 守っているもの |
 |---|---|
@@ -87,8 +92,6 @@ docker compose exec web npm run build       # フロントの型検査（tsc -b�
 | `test_share_link_lifecycle` ほか | 共有リンクの期限・失効・横漏れ防止 |
 | `test_course_becomes_sections_in_order` ほか | 駅すぱあとの応答（Point と Line の交互並び）の読み方 |
 | `test_put_get_query_delete` | Firestore ドライバの読み書き・家族スコープでの絞り込みと一括削除 |
-
-これらが落ちる変更は、機能の後退ではなく**設計の前提の後退**です。テストを直す前に、実装を疑ってください。
 
 ## ディレクトリ
 
@@ -124,7 +127,7 @@ docs/architecture.py         アーキテクチャ図の定義
 
 **家族が確定する欄に、AI の値を初期値として入れない。** 場所も年代も、候補は
 プレースホルダ（`例: ◯◯`）と「「◯◯」を入れる」ボタンで示し、押してもらう。
-初期値に入れると、触っていない欄がそのまま「家族が確定した記憶」として保存される（設計書 7-2）。
+初期値に入れると、触っていない欄がそのまま「家族が確定した記憶」として保存される。
 
 **まだ確かめていない名前は、確定した名前と同じ顔で出さない。** 一覧のキャプションなどで
 AI の候補を出すときは `PlaceLabel` を使い、「「◯◯」かも＋候補」の形にする。
@@ -146,7 +149,7 @@ AI の候補を出すときは `PlaceLabel` を使い、「「◯◯」かも＋
 
 **エージェント名・接続モード・監査ログは画面に出さない。** ユーザーが知る必要のない実装の都合なので、
 `GET /api/agents` と `GET /api/families/{id}/audit` は残しつつ、画面からは呼ばない。
-監査ログの記録自体は設計書 7 章の要件なので、バックエンドでは従来どおり残し続けること。
+監査ログの記録自体はガバナンス上の要件なので、バックエンドでは従来どおり残し続けること。
 
 ### 使い方のスクリーンショット
 
@@ -184,16 +187,6 @@ GEMINI_MODE=mock EKISPERT_MODE=mock docker compose --profile shots up --build sh
 
 説明文とファイル名の対応は [LandingPage.tsx](frontend/src/pages/LandingPage.tsx) の `STEPS` にあります。
 **手順を足し引きしたら、`STEPS` と `shots.js` の両方を直してください。**
-
-## 変更するときに守ること
-
-この 5 つは設計書の主題そのもので、コードの都合で崩さないでください。
-
-1. **預かった写真に手を加えない** — 加工した画像で元を置き換えない。保存は `original/` のみ
-2. **AI は `confirmed` に書かない** — 推定は `estimate`、家族の記憶は `confirmed`。表示は `Photo.resolved_place` を通す
-3. **外部 API を叩いたら記録する** — `audit.record_external_call` を通し、非学習ポリシーを証跡に残す
-4. **Storage の参照は `make_ref` 経由** — `family/{familyId}/…` 以外は `blobs.py` が弾く
-5. **共有は期限つき・失効可能** — 期限なしの公開 URL は作らない
 
 ### 外部 API を足すとき
 
@@ -274,19 +267,6 @@ docker compose run --rm api python -m scripts.check_ekispert 東京 京都
 > **2026年後半以降は専用アクセスキーが必要になる予定**と公式に告知されています（発行手続きは準備中）。
 > 旅程は出発時刻を指定して組むのでこの制限に当たります。塞がれた場合は `searchType` を既定の
 > `plain`（平均待ち時間探索）に落とし、`time` を送らない形に切り替えてください。
-
-## デプロイ
-
-Cloud Run への手順は [DEPLOY.md](DEPLOY.md) にまとめてあります（CLI・画面操作・GitHub Actions の3通り）。
-
-GitHub Actions の CD（[.github/workflows/deploy.yml](.github/workflows/deploy.yml)）は
-**既定で無効**です。リポジトリ変数 `ENABLE_CD` を `true` にするまで、push しても skip されます。
-有効にする前に、DEPLOY.md のパターンC を読んで Workload Identity の設定を済ませてください。
-
-デプロイ時にハマりやすいのは次の2点です。
-
-- **CPU 常時割り当てが要る** — 取り込みはレスポンス後にバックグラウンドで走るため、既定の CPU 割り当てだと途中で止まる
-- **Apple Silicon から `docker build` するなら `--platform linux/amd64`** — Cloud Build（[cloudbuild.yaml](cloudbuild.yaml)）に投げれば考えなくてよい
 
 ## コードのスタイル
 

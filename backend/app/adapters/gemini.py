@@ -1,7 +1,7 @@
 """場所・年代の推定を担う LLM ポート（Gemini）。
 
 live モードは google-genai を使い、mock モードは決定的なフィクスチャを返す。
-どちらも「候補・根拠・確度」を必ず返す契約にしてあり、確定は行わない（設計書 7-2）。
+どちらも「候補・根拠・確度」を必ず返す契約にしてあり、確定は行わない。
 """
 
 from __future__ import annotations
@@ -22,7 +22,7 @@ from app.models import (
 
 @dataclass
 class EstimateContext:
-    """家族の訂正が後続推定に効く（設計書 4章 パイプライン 4）。"""
+    """家族の訂正が後続推定に効く。"""
 
     album_title: str = ""
     family_corrections: list[str] = field(default_factory=list)

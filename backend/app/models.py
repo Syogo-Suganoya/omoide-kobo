@@ -1,7 +1,7 @@
-"""設計書 6章 のデータモデル（Firestore + Cloud Storage）。
+"""データモデル（Firestore + Cloud Storage）。
 
 推定（estimate）と家族の記憶（confirmed）を必ず別フィールドで保持する。
-AI は confirmed を書き換えない ＝ 設計書 7-2「推定は記憶を上書きしない」の型レベルの担保。
+AI は confirmed を書き換えない ＝「推定は記憶を上書きしない」の型レベルの担保。
 """
 
 from __future__ import annotations

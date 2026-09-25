@@ -45,7 +45,7 @@ class Settings(BaseSettings):
     ] = "plain"
 
 
-    # 設計書 7-1: 学習不使用の技術的担保。live 呼び出し時に必ず監査ログへ記録する。
+    # 学習不使用の技術的担保。live 呼び出し時に必ず監査ログへ記録する。
     no_training_policy: str = "no-training/no-human-review; family-scoped storage"
 
 

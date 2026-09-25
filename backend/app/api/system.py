@@ -61,7 +61,7 @@ async def create_share(payload: ShareCreate) -> ShareCreated:
     """期限付きの閲覧リンクを発行する。
 
     外部の配信サービスに家族の写真を預けず、リンクを家族が好きな手段で渡せるようにする。
-    トークンは推測不能・必ず期限つき・いつでも失効可能（設計書 7-3 の明示共有の担保）。
+    トークンは推測不能・必ず期限つき・いつでも失効可能（明示的に渡した相手にだけ届くための担保）。
     """
     if await repo.get_family(payload.family_id) is None:
         raise HTTPException(404, "家族が見つかりません")

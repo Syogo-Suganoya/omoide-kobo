@@ -24,7 +24,7 @@ export default function PhotoPage() {
     setSiblings(await api.listPhotos(p.album_id));
     setPlace(p.confirmed.place ?? "");
     // 場所と同じく、AI の推定は初期値に入れない。
-    // 触っていない欄がそのまま「家族が確定した記憶」になってしまうため（設計書 7-2）。
+    // 触っていない欄がそのまま「家族が確定した記憶」になってしまうため。
     setEra(p.confirmed.era ?? "");
     setCorrection(p.confirmed.family_correction ?? "");
   }, [photoId]);
