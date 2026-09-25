@@ -16,6 +16,7 @@ services:
       EKISPERT_MODE: ${EKISPERT_MODE:-mock}
       # firestore（既定・下の emulator を指す） | memory（テスト用）
       DB_DRIVER: ${DB_DRIVER:-firestore}
+      FIRESTORE_DATABASE: ${FIRESTORE_DATABASE:-(default)}
       FIRESTORE_EMULATOR_HOST: firestore:8085
       GOOGLE_CLOUD_PROJECT: ${GOOGLE_CLOUD_PROJECT:-omoide-kobo-local}
       # local | gcs

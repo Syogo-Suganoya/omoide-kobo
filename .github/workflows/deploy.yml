@@ -83,7 +83,7 @@ jobs:
             --no-cpu-throttling \
             --memory 1Gi \
             --timeout 600 \
-            --set-env-vars "DB_DRIVER=firestore,STORAGE_DRIVER=gcs,GCS_BUCKET=${{ vars.GCS_BUCKET }},GOOGLE_CLOUD_PROJECT=${{ env.PROJECT_ID }},GEMINI_MODE=${{ vars.GEMINI_MODE || 'mock' }},EKISPERT_MODE=${{ vars.EKISPERT_MODE || 'mock' }}"
+            --set-env-vars "DB_DRIVER=firestore,FIRESTORE_DATABASE=${{ vars.FIRESTORE_DATABASE || '(default)' }},STORAGE_DRIVER=gcs,GCS_BUCKET=${{ vars.GCS_BUCKET }},GOOGLE_CLOUD_PROJECT=${{ env.PROJECT_ID }},GEMINI_MODE=${{ vars.GEMINI_MODE || 'mock' }},EKISPERT_MODE=${{ vars.EKISPERT_MODE || 'mock' }}"
 
           echo "url=$(gcloud run services describe ${{ env.SERVICE }} --region ${{ env.REGION }} --format='value(status.url)')" >> "$GITHUB_OUTPUT"
 

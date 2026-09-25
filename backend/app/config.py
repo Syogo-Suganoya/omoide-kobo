@@ -18,6 +18,10 @@ class Settings(BaseSettings):
 
     # 既定は Firestore（開発はエミュレータ）。memory はテスト用のフォールバック
     db_driver: Literal["firestore", "memory"] = "firestore"
+    # Firestore のデータベース ID。`gcloud firestore databases create` に --database を
+    # 付けて作ると `(default)` 以外の名前になるので、そのときはここを合わせる。
+    # エミュレータは常に `(default)`。
+    firestore_database: str = "(default)"
     storage_driver: Literal["local", "gcs"] = "local"
 
     storage_local_root: str = "/data/storage"

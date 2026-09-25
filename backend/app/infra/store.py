@@ -100,10 +100,14 @@ class MemoryStore(Store):
 
 
 class FirestoreStore(Store):
-    def __init__(self, project: str) -> None:
+    def __init__(self, project: str, database: str = "(default)") -> None:
         from google.cloud import firestore  # 遅延 import（テストの memory 運用では触らない）
 
-        self._client = firestore.AsyncClient(project=project)
+        # データベース ID を指定できるようにしておく。
+        # プロジェクトに1つとは限らず、`gcloud firestore databases create` で
+        # --database を付けて作ると `(default)` 以外の名前になる。既定のままだと
+        # 「The database (default) does not exist」で全ての読み書きが 500 になる。
+        self._client = firestore.AsyncClient(project=project, database=database)
 
     async def put(self, collection: str, doc_id: str, data: Doc) -> None:
         await self._client.collection(collection).document(doc_id).set(_jsonable(data))
@@ -144,7 +148,7 @@ def get_store() -> Store:
     if _store is None:
         settings = get_settings()
         if settings.db_driver == "firestore":
-            _store = FirestoreStore(settings.google_cloud_project)
+            _store = FirestoreStore(settings.google_cloud_project, settings.firestore_database)
         else:
             root = os.path.dirname(settings.storage_local_root.rstrip("/")) or "/data"
             _store = MemoryStore(persist_path=os.path.join(root, "db.json"))

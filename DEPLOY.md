@@ -93,8 +93,16 @@ gcloud artifacts repositories create $REPO \
 gcloud storage buckets create gs://$BUCKET \
   --location=$REGION --uniform-bucket-level-access
 
-# Firestore（ネイティブモード。プロジェクトに1つ。アプリのデータはすべてここに入る）
+# Firestore（ネイティブモード。アプリのデータはすべてここに入る）
+# --database を付けないこと。付けるとその名前のデータベースになり、
+# アプリが見にいく (default) とは別物になる（全ての読み書きが 500 になります）。
 gcloud firestore databases create --location=$REGION
+
+# すでに別名で作ってしまったときは、作り直さずに名前を教える。
+#   gcloud firestore databases list --format='value(name)'
+#   gh variable set FIRESTORE_DATABASE --body "<その名前>"   # CD の場合
+#   gcloud run services update $SERVICE --region $REGION \
+#     --update-env-vars FIRESTORE_DATABASE=<その名前>        # 手で直す場合
 ```
 
 ## 3. キーを Secret Manager に入れる（live にするときだけ）
