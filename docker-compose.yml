@@ -111,6 +111,32 @@ services:
       web:
         condition: service_started
 
+  # 提出用のデモ動画を撮る（`docker compose --profile shots run --rm demo`）。
+  # 出力は docs/demo/demo.webm と demo.mp4。docs/demo/photos/ に写真を置けばそれを使う。
+  # shots と同じく、撮る前に家族のデータを消す。
+  demo:
+    profiles: ["shots"]
+    image: omoide-kobo-shots
+    build:
+      context: ./docs
+      dockerfile: Dockerfile.shots
+    user: root
+    working_dir: /work
+    environment:
+      WEB_URL: http://omoide-kobo.local:5173
+      API_URL: /api
+      OUT_DIR: /work/docs/demo
+      NODE_PATH: /usr/src/app/node_modules
+      TZ: Asia/Tokyo
+    entrypoint: ["node", "docs/demo.js"]
+    volumes:
+      - .:/work
+    depends_on:
+      api:
+        condition: service_healthy
+      web:
+        condition: service_started
+
   firestore:
     image: google/cloud-sdk:emulators
     command: >

@@ -5,3 +5,6 @@ __pycache__/
 .pytest_cache/
 *.pyc
 *.tsbuildinfo
+
+# デモ動画の出力と、録画に使う手元の写真（家族の写真をリポジトリに入れない）
+docs/demo/

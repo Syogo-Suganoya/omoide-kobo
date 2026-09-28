@@ -188,6 +188,31 @@ GEMINI_MODE=mock EKISPERT_MODE=mock docker compose --profile shots up --build sh
 説明文とファイル名の対応は [LandingPage.tsx](frontend/src/pages/LandingPage.tsx) の `STEPS` にあります。
 **手順を足し引きしたら、`STEPS` と `shots.js` の両方を直してください。**
 
+### デモ動画
+
+提出用の動画も同じ仕組みで撮ります。入口から共有まで、カーソルを動かしながら操作し、
+段ごとに字幕を出して1本にします（2分半ほど）。
+
+```bash
+docker compose --profile shots run --rm demo
+```
+
+`docs/demo/demo.mp4`（と `demo.webm`）ができます。1280×720・H.264 なので、そのまま YouTube に上げられます。
+
+**写真は `docs/demo/photos/` に置いてください**（JPEG か PNG、名前順に先頭の3枚）。無ければ canvas で描いた
+白黒の絵を使います。`docs/demo/` は丸ごと gitignore してあるので、家族の写真を置いても
+リポジトリには入りません。
+
+**提出する動画は live で撮ってください。** モックの推定は、写真に何が写っていても決まった作り話を返します
+（描いた山の絵に「アーケード柱の断面形状が一致」と根拠をつける、など）。それを AI の出力として見せると、
+審査する人に実際の性能を取り違えさせます。モックで撮ると、実行時に警告が出ます。
+
+live で撮るときの目安です。
+
+- Gemini の無料枠は**モデルごとに1日20回**。この動画で9回前後使う（写真1枚に2回、旅程の地点1つに1回）
+- 失敗した写真は3回まで自動で推定し直すが、枠を使い切っていると戻らない
+- 写真は**同じ地方のもの**を選ぶ。離れた場所を3つ選ぶと、旅程が夜まで続く
+
 ### 外部 API を足すとき
 
 `app/adapters/` に mock と live の両方を置き、`get_xxx()` で `*_MODE` を見て切り替えます。

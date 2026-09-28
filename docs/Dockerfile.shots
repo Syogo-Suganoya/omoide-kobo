@@ -1,7 +1,8 @@
-# 案内ページに載せる画面の写しを撮るためだけのコンテナ。
+# 案内ページの写しと、提出用のデモ動画を撮るためだけのコンテナ。
 # 起動中の web にブラウザで繋ぎ、利用者と同じ順に操作して撮る。
 FROM zenika/alpine-chrome:with-puppeteer
 
 USER root
 # 日本語のフォントが無いと全部豆腐になる。
-RUN apk add --no-cache font-noto-cjk
+# ffmpeg は動画（page.screencast）の書き出しに要る。
+RUN apk add --no-cache font-noto-cjk ffmpeg
