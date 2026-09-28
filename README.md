@@ -21,6 +21,8 @@
 
 ## 画面
 
+https://github.com/user-attachments/assets/f9f851f6-0f8e-459f-828b-3d95b8a6e634
+
 入口から旅程まで、実際の操作順です。
 
 **① はじめる**
