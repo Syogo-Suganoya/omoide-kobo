@@ -52,7 +52,7 @@ def main() -> None:
             agent = Run("agent\nAgent Development Kit\n推定／旅程")
 
         with Cluster("AI・外部 API", graph_attr=cluster()):
-            gemini = AIPlatform("Gemini 3.7 Flash\n場所・年代の推定")
+            gemini = AIPlatform("Gemini 3.5 Flash\n場所・年代の推定")
             ekispert = Action("駅すぱあと API\nMCP サーバー")
 
         with Cluster("データ", graph_attr=cluster()):
