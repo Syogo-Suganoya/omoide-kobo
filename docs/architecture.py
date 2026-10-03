@@ -49,7 +49,7 @@ def main() -> None:
 
         with Cluster("実行基盤 — Cloud Run", graph_attr=cluster("#f7f1e4")):
             api = Run("api\nFastAPI (Python)")
-            agent = Run("agent\nAgent Development Kit\n推定／旅程")
+            agent = Run("orchestrator\n推定・確認質問・旅程")
 
         with Cluster("AI・外部 API", graph_attr=cluster()):
             gemini = AIPlatform("Gemini 3.5 Flash\n場所・年代の推定")

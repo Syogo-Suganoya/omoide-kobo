@@ -6,6 +6,7 @@ AI は confirmed を書き換えない ＝「推定は記憶を上書きしな�
 
 from __future__ import annotations
 
+import secrets
 from datetime import datetime, timezone
 from enum import Enum
 from typing import Any, Literal
@@ -38,7 +39,9 @@ class Member(BaseModel):
 
 
 class Family(BaseModel):
-    id: str = Field(default_factory=lambda: new_id("fam"))
+    # ログインが無いので、家族 ID を知っていることが「その家族である」ことの証になる。
+    # 共有リンクのトークンと同じく、推測できない長さにする（家族の一覧を返す API も置かない）
+    id: str = Field(default_factory=lambda: f"fam_{secrets.token_urlsafe(18)}")
     name: str
     members: list[Member] = Field(default_factory=list)
     created_at: datetime = Field(default_factory=now)

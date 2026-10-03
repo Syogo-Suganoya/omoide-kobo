@@ -6,8 +6,8 @@
  * 利用者と同じ順に操作して撮るので、画面を変えたら撮り直すだけで追随する。
  * 撮る順・ファイル名は LandingPage.tsx の STEPS と対で、片方を変えたらもう片方も直すこと。
  *
- * **この本は家族のデータを消す。** 1枚目は「家族がまだ無い人の入口」なので、
- * 撮る前に家族を全部消す。開発のエミュレータ（メモリ上）だけを相手にすること。
+ * 1枚目は「家族がまだ無い人の入口」なので、まっさらなブラウザで家族を新しく作って撮る。
+ * 撮った家族は残るので、開発のエミュレータ（メモリ上）だけを相手にすること。
  */
 
 const fs = require("fs");
@@ -216,13 +216,8 @@ async function main() {
   await page.goto(`${WEB}/`, { waitUntil: "networkidle0" });
   const samples = await makeSamples(page);
 
-  // 1枚目は「家族がまだ無い人の入口」。先に消しておく。
-  const wiped = await page.evaluate(async (api) => {
-    const families = await (await fetch(`${api}/families`)).json();
-    for (const f of families) await fetch(`${api}/families/${f.id}`, { method: "DELETE" });
-    return families.length;
-  }, API);
-  console.log(`家族を${wiped}件消して、入口から撮り直します`);
+  // 1枚目は「家族がまだ無い人の入口」。家族はブラウザごとに覚えているだけなので、忘れさせれば入口に戻る
+  await page.evaluate(() => localStorage.clear());
 
   // ── 01 はじめる ───────────────────────────────────────────────
   await page.goto(`${WEB}/home`, { waitUntil: "networkidle0" });
@@ -244,9 +239,9 @@ async function main() {
   // 推定の終わりは API で見る。1枚でも失敗したら、その理由を添えて止める
   // （鍵なしのイメージで live を指したときに、無言で時間切れにならないように）。
   const done = await page.evaluate(async (api) => {
-    const family = (await (await fetch(`${api}/families`)).json())[0];
+    const familyId = localStorage.getItem("omoide.familyId");
     for (let i = 0; i < 120; i++) {
-      const photos = await (await fetch(`${api}/families/${family.id}/photos`)).json();
+      const photos = await (await fetch(`${api}/families/${familyId}/photos`)).json();
       const failed = photos.find((p) => p.status === "failed");
       if (failed) return { error: failed.error };
       if (photos.length > 0 && photos.every((p) => p.status === "awaiting_family")) return { ok: true };

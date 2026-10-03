@@ -24,10 +24,6 @@ async def get_family(family_id: str) -> Family | None:
     return Family(**doc) if doc else None
 
 
-async def list_families() -> list[Family]:
-    return [Family(**d) for d in await get_store().query(FAMILIES)]
-
-
 async def save_album(album: Album) -> Album:
     await get_store().put(ALBUMS, album.id, album.model_dump(mode="json"))
     return album

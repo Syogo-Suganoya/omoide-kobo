@@ -45,11 +45,11 @@ docker compose up --build
 
 ```bash
 cp .env.example .env      # GEMINI_MODE=live など、必要な行だけ live にする
-WITH_LIVE_DEPS=true docker compose build api   # google-adk などを追加インストール
+WITH_LIVE_DEPS=true docker compose build api   # google-genai などを追加インストール
 docker compose up
 ```
 
-`google-adk` を含む GCP 系の依存は [requirements-live.txt](backend/requirements-live.txt) に分けてあります。
+`google-genai` を含む GCP 系の依存は [requirements-live.txt](backend/requirements-live.txt) に分けてあります。
 mock 運用では import されないので、開発イメージは軽いままです。
 
 ### 依存の追加・更新
@@ -97,11 +97,10 @@ docker compose exec web npm run build       # フロントの型検査（tsc -b�
 
 ```
 backend/
-  app/agents/                ADK のエージェント構成に対応
+  app/agents/                エージェント（オーケストレータと、推定・旅程の各担当）
     orchestrator.py          取り込み→推定→旅程 の進行（自律）
     estimate.py              場所/年代を根拠と確度つきで提示（提示まで）
     itinerary.py             現況確認 → 休憩込みの旅程生成（提案まで）
-    adk.py                   Agent Development Kit へのブリッジ（live 時に LlmAgent 化）
   app/adapters/              gemini / ekispert（mock ⇄ live）
   app/infra/                 store.py（Firestore。memory はテスト用）, blobs.py（GCS or ローカル・家族スコープ強制）
   app/api/                   FastAPI ルータ
@@ -171,9 +170,8 @@ GEMINI_MODE=mock EKISPERT_MODE=mock docker compose --profile shots up --build sh
 | `05-trip.png` | 旅程 |
 | `06-share.png` | 共有リンク |
 
-撮る前に**家族を全部消します**（1枚目が「家族がまだ無い人の入口」のため）。
-開発のエミュレータはメモリ上なので消えて困るものは入っていませんが、
-本物の Firestore を指した状態では流さないでください。
+撮るたびに、まっさらなブラウザで「はじめまして」から家族を作ります（既存の家族には触りません）。
+ただし撮った家族と写真はそのまま残るので、本物の Firestore を指した状態では流さないでください。
 
 `GEMINI_MODE=mock` を付けるのは、鍵や live 依存の有無に左右されず、毎回同じ推定結果で撮れるからです。
 付け忘れて live のまま流すと、推定が通らない理由を添えて途中で止まります。

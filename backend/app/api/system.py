@@ -9,7 +9,6 @@ from fastapi import APIRouter, HTTPException, Response
 from pydantic import BaseModel, Field
 
 from app import repo
-from app.agents.adk import adk_status
 from app.agents.orchestrator import get_orchestrator
 from app.config import get_settings
 from app.infra.blobs import get_blobs
@@ -43,7 +42,6 @@ async def agents() -> dict[str, object]:
             "db": settings.db_driver,
             "storage": settings.storage_driver,
         },
-        "adk": adk_status(),
         "policy": settings.no_training_policy,
     }
 

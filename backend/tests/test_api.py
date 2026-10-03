@@ -195,6 +195,14 @@ async def test_share_rejects_other_familys_target(client: AsyncClient) -> None:
     assert res.status_code == 404
 
 
+async def test_families_are_not_listed(client: AsyncClient) -> None:
+    """ログインが無いので、家族は ID を知っている人にしか見えない。一覧の口は置かない。"""
+    family = (await client.post("/api/families", json={"name": "菅谷家"})).json()
+    assert (await client.get("/api/families")).status_code == 405
+    assert len(family["id"]) >= 24  # 推測できない長さ
+    assert (await client.get(f"/api/families/{family['id']}")).status_code == 200
+
+
 async def test_agents_roster(client: AsyncClient) -> None:
     body = (await client.get("/api/agents")).json()
     names = {a["name"] for a in body["roster"]}

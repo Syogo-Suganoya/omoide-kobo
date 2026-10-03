@@ -3,7 +3,7 @@ services:
     build:
       context: ./backend
       args:
-        # 実 API / Firestore / GCS を使うときは true（google-adk などを追加インストール）
+        # 実 API / Firestore / GCS を使うときは true（google-genai などを追加インストール）
         WITH_LIVE_DEPS: ${WITH_LIVE_DEPS:-false}
     image: omoide-kobo-api
     command: uvicorn app.main:app --host 0.0.0.0 --port 8080 --reload

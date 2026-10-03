@@ -45,11 +45,6 @@ async def create_family(payload: FamilyCreate) -> Family:
     return family
 
 
-@router.get("/families", response_model=list[Family])
-async def list_families() -> list[Family]:
-    return await repo.list_families()
-
-
 @router.get("/families/{family_id}", response_model=Family)
 async def get_family(family_id: str) -> Family:
     family = await repo.get_family(family_id)

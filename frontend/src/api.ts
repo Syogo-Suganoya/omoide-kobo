@@ -25,7 +25,6 @@ async function request<T>(path: string, init?: RequestInit): Promise<T> {
 const json = (body: unknown) => JSON.stringify(body);
 
 export const api = {
-  listFamilies: () => request<Family[]>("/families"),
   createFamily: (name: string) => request<Family>("/families", { method: "POST", body: json({ name }) }),
   getFamily: (id: string) => request<Family>(`/families/${id}`),
   renameFamily: (id: string, name: string) =>

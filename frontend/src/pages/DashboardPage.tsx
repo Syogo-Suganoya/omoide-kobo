@@ -23,8 +23,9 @@ function Onboarding({ onDone }: { onDone: (albumId: string) => void }) {
       const family = await api.createFamily("わたしの家族");
       // アルバム作りを別の作業にしない。最初の一冊はこちらで用意する
       const album = await api.createAlbum(family.id, "実家のアルバム");
-      await refresh();
+      // 先に覚えてから引き直す。サーバーは一覧を返さないので、覚えていない家族は見えない
       select(family.id);
+      await refresh();
       onDone(album.id);
     } catch (e) {
       setError(e);

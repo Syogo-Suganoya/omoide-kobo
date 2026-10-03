@@ -10,8 +10,8 @@
  * 写真は docs/demo/photos/ に置いた JPEG/PNG を使う（無ければ canvas で描いた白黒写真）。
  * docs/demo/ は gitignore 済みなので、家族の写真を置いてもリポジトリには入らない。
  *
- * **撮る前に家族を全部消す**（入口の「はじめまして」から撮るため）。
- * 開発のエミュレータだけを相手にすること。
+ * 入口の「はじめまして」から撮るため、まっさらなブラウザで家族を新しく作る。
+ * 撮った家族は残るので、開発のエミュレータだけを相手にすること。
  */
 
 const fs = require("fs");
@@ -296,13 +296,11 @@ async function main() {
   photos = photos.slice(0, 3);
   console.log(`写真 ${photos.length} 枚: ${photos.map((p) => path.basename(p)).join(", ")}`);
 
-  const wiped = await page.evaluate(async (base) => {
-    const families = await (await fetch(`${base}/families`)).json();
-    for (const f of families) await fetch(`${base}/families/${f.id}`, { method: "DELETE" });
-    return families.length;
-  }, API);
-  console.log(`家族を${wiped}件消して、入口から撮ります`);
-  await page.evaluate(() => sessionStorage.clear());
+  // 家族はブラウザごとに覚えているだけなので、忘れさせれば「はじめまして」から撮れる
+  await page.evaluate(() => {
+    localStorage.clear();
+    sessionStorage.clear();
+  });
   // 案内ページは撮らない。「写真を調べる」を押した先の、わが家から始める
   await page.goto(`${WEB}/home`, { waitUntil: "networkidle0" });
   await page.evaluate(() => document.fonts.ready);
@@ -338,7 +336,7 @@ async function main() {
   );
 
   // 失敗した写真は、推定し直してから先へ進む（無料枠の 429 で1枚落ちることがある）
-  const family = (await api("/families"))[0];
+  const family = { id: await page.evaluate(() => localStorage.getItem("omoide.familyId")) };
   let settled = false;
   for (let i = 0; i < 180 && !settled; i++) {
     const list = await api(`/families/${family.id}/photos`);
