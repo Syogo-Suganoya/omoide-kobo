@@ -22,9 +22,18 @@ export function GuideCarousel({ steps }: { steps: GuideStep[] }) {
   const move = (delta: number) =>
     setIndex((i) => Math.min(steps.length - 1, Math.max(0, i + delta)));
 
-  // 前後送りで選択が一覧の外に出たら、見える位置まで送る
+  // 前後送りで選択が一覧の外に出たら、見える位置まで送る。
+  // scrollIntoView はページ全体まで動かしてしまう（開いた直後に一覧の位置へ飛ぶ）ので、一覧の中だけを送る
   useEffect(() => {
-    listRef.current?.children[index]?.scrollIntoView({ block: "nearest" });
+    const list = listRef.current;
+    const item = list?.children[index] as HTMLElement | undefined;
+    if (!list || !item) return;
+    const box = list.getBoundingClientRect();
+    const r = item.getBoundingClientRect();
+    if (r.top < box.top) list.scrollTop -= box.top - r.top;
+    else if (r.bottom > box.bottom) list.scrollTop += r.bottom - box.bottom;
+    if (r.left < box.left) list.scrollLeft -= box.left - r.left;
+    else if (r.right > box.right) list.scrollLeft += r.right - box.right;
   }, [index]);
 
   return (

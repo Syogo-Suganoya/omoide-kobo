@@ -1,4 +1,5 @@
-import { NavLink, Navigate, Route, Routes, useLocation } from "react-router-dom";
+import { useEffect } from "react";
+import { NavLink, Navigate, Route, Routes, useLocation, useNavigationType } from "react-router-dom";
 
 import { MainNav } from "./components/nav";
 import { FamilyProvider, useFamily } from "./family";
@@ -29,12 +30,24 @@ function FamilySwitcher() {
   );
 }
 
+/** 画面を移ったら先頭から見せる。同じ画面へのリンク（使い方を2回押すなど）でも戻す。
+ * ブラウザの「戻る」だけは、元いた位置をブラウザに復元させる。 */
+function ScrollToTop() {
+  const { key } = useLocation();
+  const type = useNavigationType();
+  useEffect(() => {
+    if (type !== "POP") window.scrollTo(0, 0);
+  }, [key, type]);
+  return null;
+}
+
 function Shell() {
   // 共有リンクの閲覧者に家族の操作メニューは見せない
   const shared = useLocation().pathname.startsWith("/s/");
 
   return (
     <div className="app">
+      <ScrollToTop />
       <header className="topbar">
         <div className="bar">
           {shared ? (
